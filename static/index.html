@@ -152,12 +152,20 @@ function landing(){
  <div class="row">${rq?`<button class="go" data-a="join" data-c="${esc(rq)}">Join room ${esc(rq)}</button>`:
  `<button class="go" data-a="create">Create a room</button><input id="rc" maxlength="8" placeholder="Room code" size="10"><button data-a="join">Join</button>`}</div>`;
 }
+function customBox(host){
+ const c=S.custom;
+ const sum=c?`<div class="panel"><b class="ok">✓ Custom list: ${c.n} players</b> from ${esc(c.file)}<div class="ps">${c.W} keepers · ${c.B} batters · ${c.A} all-rounders · ${c.L} bowlers · ${c.ov} overseas. Only these players will be auctioned.${c.notes.map(n=>" "+esc(n)).join("")}</div></div>`:"";
+ if(!host)return c?`<h2>Player list</h2>${sum}`:"";
+ return `<h2>Custom player list (optional)</h2><p>Upload an Excel or CSV file with the columns <b>Name, Rating, Position, Overseas</b>. Only the players in your file will come up for auction. <a href="/template.xlsx">Download template</a></p>
+ <div class="row"><input type="file" id="cf" accept=".xlsx,.xlsm,.csv,.txt">${c?`<button data-a="nocustom">Use default players</button>`:""}</div>${sum}`;
+}
 function lobby(){
  const link=location.origin+"/?room="+S.code,y=S.you;
  return `<h1>Room ${esc(S.code)}</h1>
  <p>Share this link with friends:</p><div class="row"><input id="lk" readonly value="${esc(link)}" size="34"><button data-a="copy">Copy</button></div>
  <h2>Players here</h2><div>${S.people.map(p=>`<span class="pill">${esc(p.n)}${p.host?" (host)":""}${p.on?"":" · away"}</span>`).join("")}</div>
  <h2>Pick your franchise</h2><div class="grid">${S.fr.map((f,i)=>`<button class="team ${y.claim==i?"me":f.o?"taken":""}" data-a="pick" data-i="${i}"><i style="background:${f.c}"></i>${f.n}<small>${y.claim==i?"You":f.o?esc(f.o):"AI unless claimed"}</small></button>`).join("")}</div>
+ ${customBox(y.host)}
  ${y.host?`<h2>Start</h2><div class="row"><label>Teams in the auction <select id="sz">${[2,3,4,5,6,7,8,9,10].map(n=>`<option ${n==SZ?"selected":""}>${n}</option>`).join("")}</select></label><button class="go" data-a="start">Start auction</button></div>
  <p>Unclaimed franchises are played by the AI. 2 teams is a duel (about 20 min); 10 teams is the full auction (about 90 min).</p>`:"<p>Waiting for the host to start.</p>"}
  <p>Rules: ${fm(S.limits.purse)} purse, squads of ${S.limits.min} to ${S.limits.max}, at most ${S.limits.ov} overseas players.</p>`;
@@ -228,6 +236,12 @@ function end(){
  ${S.you.host?`<p><button class="go" data-a="lobby">Back to lobby</button></p>`:""}`;
 }
 app.addEventListener("pointerdown",e=>{if(e.target.closest("#bid")&&S&&S.lot&&S.lot.can)send({t:"bid"})});
+app.addEventListener("change",e=>{
+ if(e.target.id!="cf"||!e.target.files[0])return;const f=e.target.files[0];
+ if(f.size>1000000){alert("File is too big (max 1 MB).");e.target.value="";return}
+ const r=new FileReader();r.onload=()=>{const u=new Uint8Array(r.result);let s="";for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));
+  send({t:"upload",name:f.name,data:btoa(s)})};r.readAsArrayBuffer(f);
+});
 app.addEventListener("click",e=>{
  const b=e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
  if(a=="create"||a=="join"){
@@ -238,6 +252,7 @@ app.addEventListener("click",e=>{
  else if(a=="start"){SZ=+$("sz").value;send({t:"start",size:SZ})}
  else if(a=="endnow"){if(confirm("End the auction for everyone now?"))send({t:"end"})}
  else if(a=="lobby")send({t:"lobby"});
+ else if(a=="nocustom")send({t:"nocustom"});
  else if(a=="tog"){
   if(!S.xi||S.xi.locked)return;const by={};S.mine.forEach(x=>by[x.n]=x);const n=b.dataset.n;let sel=[...S.xi.sel];
   if(sel.includes(n))sel=sel.filter(x=>x!=n);

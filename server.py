@@ -1,10 +1,11 @@
 """Auction Room server: FastAPI + WebSockets. The server owns all auction rules, so clients can't cheat."""
-import asyncio, json, os, random, string
+import asyncio, base64, io, json, os, random, string
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from players import build_pool, order, pick
+from custom import parse_upload
 
 PURSE, MAXS, MINS, MAXO, MAXO_XI = 120.0, 25, 18, 8, 4
 TM = [("Mumbai", "#1c5fd1"), ("Chennai", "#f2b705"), ("Bengaluru", "#d3222a"), ("Kolkata", "#5b2a86"),
@@ -82,6 +83,7 @@ class Room:
         s.status, s.last, s.log, s.unsold, s.pass2 = "bidding", "", [], [], False
         s.reaper = None
         s.bids = []  # bid history of the current lot, oldest first
+        s.custom = None  # host-uploaded player list: {"players": [...], "file": str, "notes": [...]}
 
     # ---------- connections ----------
     def attach(s, cid, name, ws):
@@ -133,13 +135,22 @@ class Room:
     def setup(s, size):
         humans = sorted(s.claims)
         size = max(2, min(10, size, 10)); size = max(size, len(humans))
+        if s.custom and len(s.custom["players"]) < MINS * size:
+            return (f"Your list has {len(s.custom['players'])} players, but {size} teams need at least {MINS * size} "
+                    f"({MINS} each). Add players or pick fewer teams.")
         free = [i for i in range(10) if i not in s.claims]
         ais = random.sample(free, size - len(humans))
         s.teams = [Team(k, TM[i][0], TM[i][1], s.claims.get(i)) for k, i in enumerate(sorted(humans + ais))]
-        pool = sorted(build_pool(), key=lambda p: -p["r"])
-        n = min(len(pool), max(70, size * 26))  # fewer teams -> shorter auction
-        mq = min(30, 14 + size * 2)  # marquee set grows with the number of teams (2 -> 18, 10 -> 30)
-        s.q, s.idx, s.unsold, s.pass2, s.log = order(pick(pool, n, mq), mq), -1, [], False, []
+        if s.custom:  # only the uploaded players are auctioned
+            pool = [dict(p) for p in s.custom["players"]]
+            mq = max(5, min(30, round(len(pool) * .12)))
+            q = order(pool, mq)
+        else:
+            pool = sorted(build_pool(), key=lambda p: -p["r"])
+            n = min(len(pool), max(70, size * 26))  # fewer teams -> shorter auction
+            mq = min(30, 14 + size * 2)  # marquee set grows with the number of teams (2 -> 18, 10 -> 30)
+            q = order(pick(pool, n, mq), mq)
+        s.q, s.idx, s.unsold, s.pass2, s.log = q, -1, [], False, []
         s.phase = "auction"
         s.next_lot()
 
@@ -260,12 +271,24 @@ class Room:
             if not s.claims:
                 if c["ws"]: await c["ws"].send_text(json.dumps({"t": "err", "m": "Pick a franchise first."}))
                 return
-            s.setup(int(m.get("size", 10)))
+            err = s.setup(int(m.get("size", 10)))
+            if err:
+                if c["ws"]: await c["ws"].send_text(json.dumps({"t": "err", "m": err}))
+                return
             if s.phase == "auction": s.task = asyncio.create_task(s.run())
         elif t == "bid":
             s.bid(cid)
         elif t == "end" and cid == s.host and s.phase == "auction":
             s.finish()
+        elif t == "upload" and cid == s.host and s.phase == "lobby":
+            try:
+                data = base64.b64decode(m.get("data") or "", validate=False)
+                players, notes = parse_upload(str(m.get("name") or "")[:80], data)
+                s.custom = {"players": players, "file": str(m.get("name") or "")[:60], "notes": notes}
+            except ValueError as e:
+                if c["ws"]: await c["ws"].send_text(json.dumps({"t": "err", "m": str(e)}))
+        elif t == "nocustom" and cid == s.host and s.phase == "lobby":
+            s.custom = None
         elif t in ("xi", "lock", "unlock", "reveal") and s.phase == "xi":
             me, err = s.team_of(cid), None
             if t == "xi": err = s.set_xi(cid, m.get("names"))
@@ -285,7 +308,11 @@ class Room:
              "people": [{"n": c["name"], "on": bool(c["ws"]), "host": k == s.host} for k, c in s.cl.items()],
              "fr": [{"n": n, "c": c, "o": s.cl[s.claims[i]]["name"] if s.claims.get(i) in s.cl else None}
                     for i, (n, c) in enumerate(TM)],
-             "limits": {"purse": PURSE, "min": MINS, "max": MAXS, "ov": MAXO}}
+             "limits": {"purse": PURSE, "min": MINS, "max": MAXS, "ov": MAXO}, "custom": None}
+        if s.custom:
+            ps = s.custom["players"]
+            d["custom"] = {"file": s.custom["file"], "n": len(ps), "notes": s.custom["notes"], "ov": sum(p["o"] for p in ps),
+                           **{k: sum(1 for p in ps if p["k"] == k) for k in "BLAW"}}
         if s.phase != "lobby":
             d["teams"] = [{"i": t.i, "n": t.n, "c": t.c, "o": s.cl.get(t.owner, {}).get("name"), "purse": r2(t.purse),
                            "cnt": len(t.sq), "ov": t.ov(), **{k: t.cnt(k) for k in "BLAW"}} for t in s.teams]
@@ -321,6 +348,28 @@ class Room:
 
 app = FastAPI()
 rooms = {}
+
+
+@app.get("/template.xlsx")
+def template():
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+    wb = Workbook(); ws = wb.active; ws.title = "Players"
+    ws.append(["Name", "Rating", "Position", "Overseas"])
+    for r in [("Virat Kohli", 92, "Batter", "No"), ("Jasprit Bumrah", 95, "Bowler", "No"), ("Rishabh Pant", 90, "Keeper", "No"),
+              ("Hardik Pandya", 90, "All-rounder", "No"), ("Jos Buttler", 90, "Keeper", "Yes"), ("Rashid Khan", 92, "Bowler", "Yes"),
+              ("Andre Russell", 85, "All-rounder", "Yes"), ("Travis Head", 90, "Batter", "Yes")]: ws.append(r)
+    for c in ws[1]: c.font = Font(bold=True)
+    for col, w in zip("ABCD", (24, 10, 14, 11)): ws.column_dimensions[col].width = w
+    h = wb.create_sheet("Help")
+    for line in ["Only the first sheet (Players) is read.", "Name: player name (must be unique).",
+                 "Rating: number, 60 to 95 works best (higher = better = pricier).",
+                 "Position: Batter, Bowler, All-rounder or Keeper.", "Overseas: Yes or No.",
+                 "Replace the example rows with your own players. You need at least 18 players per team."]: h.append([line])
+    h.column_dimensions["A"].width = 80
+    b = io.BytesIO(); wb.save(b)
+    return Response(b.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": 'attachment; filename="auction-players-template.xlsx"'})
 
 
 async def reap(code, room, grace=600):
