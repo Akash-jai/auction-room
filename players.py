@@ -1,59 +1,82 @@
-"""Player pool: ~60 well-known names (made-up ratings) + generated fictional players."""
+"""Player pool: real IPL-era players. Ratings are made-up estimates, not official stats.
+Edit freely: each entry is 'Name:rating' inside a block that sets role and nationality."""
 import random
 
-REAL = ("Virat Kohli|B|0|93|2;Rohit Sharma|B|0|90|2;Jasprit Bumrah|L|0|95|2;Rishabh Pant|W|0|90|2;KL Rahul|W|0|88|2;"
-"Hardik Pandya|A|0|90|2;Ravindra Jadeja|A|0|89|2;Shubman Gill|B|0|91|2;Suryakumar Yadav|B|0|90|2;Yashasvi Jaiswal|B|0|89|2;"
-"Rashid Khan|L|1|92|2;Jos Buttler|W|1|90|2;Pat Cummins|A|1|88|2;Mitchell Starc|L|1|87|2;Travis Head|B|1|89|2;"
-"Heinrich Klaasen|W|1|90|2;Andre Russell|A|1|85|2;Sunil Narine|A|1|86|2;Nicholas Pooran|W|1|86|2;Trent Boult|L|1|86|2;"
-"Kagiso Rabada|L|1|87|2;Mohammed Shami|L|0|87|2;Mohammed Siraj|L|0|86|2;Yuzvendra Chahal|L|0|85|2;Kuldeep Yadav|L|0|86|2;"
-"Arshdeep Singh|L|0|86|2;Ruturaj Gaikwad|B|0|87|2;Sanju Samson|W|0|87|2;Ishan Kishan|W|0|82|1.5;Shreyas Iyer|B|0|86|2;"
-"Axar Patel|A|0|85|2;Washington Sundar|A|0|78|1;Tilak Varma|B|0|84|1;Rinku Singh|B|0|82|1;Abhishek Sharma|A|0|84|1;"
-"Nitish Reddy|A|0|76|1;Shivam Dube|A|0|80|1;Riyan Parag|B|0|79|1;Dhruv Jurel|W|0|76|1;Ravi Bishnoi|L|0|78|1;"
-"Varun Chakravarthy|L|0|84|1.5;T Natarajan|L|0|78|1;Harshit Rana|L|0|77|1;Mayank Yadav|L|0|76|1;Avesh Khan|L|0|78|1;"
-"Prasidh Krishna|L|0|78|1;Bhuvneshwar Kumar|L|0|82|1.5;Deepak Chahar|L|0|78|1;Mitchell Marsh|A|1|84|2;David Warner|B|1|80|1.5;"
-"Glenn Maxwell|A|1|82|2;Marcus Stoinis|A|1|80|1.5;Faf du Plessis|B|1|78|1;Quinton de Kock|W|1|84|2;Phil Salt|W|1|85|2;"
-"Jofra Archer|L|1|85|2;Wanindu Hasaranga|A|1|80|1.5;Liam Livingstone|A|1|80|1.5;Sam Curran|A|1|82|2;Tim David|B|1|80|1;"
-"Josh Hazlewood|L|1|85|2;Noor Ahmad|L|1|80|1;Devon Conway|B|1|79|1;Rachin Ravindra|A|1|80|1.5;Mustafizur Rahman|L|1|78|1;"
-"Shimron Hetmyer|B|1|79|1")
+# (role, overseas, "Name:rating, Name:rating, ...")   roles: B batter, L bowler, A all-rounder, W keeper
+BLOCKS = [
+("W", 0, """Rishabh Pant:90, KL Rahul:88, Sanju Samson:87, Ishan Kishan:82, MS Dhoni:80, Jitesh Sharma:78, Dhruv Jurel:78,
+ Prabhsimran Singh:76, Abishek Porel:76, KS Bharat:68, Robin Minz:68, Kumar Kushagra:68, Narayan Jagadeesan:68,
+ Urvil Patel:68, Anuj Rawat:66, Vishnu Vinod:64, Aryan Juyal:60, Luvnith Sisodia:60, Upendra Yadav:58"""),
+("B", 0, """Virat Kohli:92, Shubman Gill:91, Suryakumar Yadav:90, Yashasvi Jaiswal:90, Rohit Sharma:89, Ruturaj Gaikwad:87,
+ Shreyas Iyer:87, Sai Sudharsan:86, Tilak Varma:85, Rinku Singh:84, Rajat Patidar:82, Riyan Parag:80, Devdutt Padikkal:79,
+ Shashank Singh:78, Ajinkya Rahane:76, Nitish Rana:76, Vaibhav Suryavanshi:76, Karun Nair:74, Prithvi Shaw:74,
+ Naman Dhir:74, Priyansh Arya:74, Angkrish Raghuvanshi:74, Ayush Badoni:74, Ayush Mhatre:74, Ashutosh Sharma:74,
+ Mayank Agarwal:72, Nehal Wadhera:72, Sameer Rizvi:72, Sarfaraz Khan:72, Rahul Tripathi:72, Shahrukh Khan:72,
+ Abdul Samad:72, Aniket Verma:72, Manish Pandey:68, Abhinav Manohar:68, Shubham Dubey:66, Musheer Khan:66,
+ Atharva Taide:66, Mahipal Lomror:66, Anmolpreet Singh:64, Swastik Chikara:60, Sachin Baby:60"""),
+("A", 0, """Hardik Pandya:90, Ravindra Jadeja:88, Axar Patel:86, Abhishek Sharma:86, Washington Sundar:80, Shivam Dube:80,
+ Nitish Kumar Reddy:79, Venkatesh Iyer:78, Krunal Pandya:78, Rahul Tewatia:76, Ramandeep Singh:74, Shardul Thakur:74,
+ Deepak Hooda:70, Shahbaz Ahmed:70, Harpreet Brar:70, Vipraj Nigam:68, Vijay Shankar:66, Tanush Kotian:66,
+ Raj Angad Bawa:66, Nishant Sindhu:66, Arshad Khan:64, Anukul Roy:64, Jayant Yadav:64, Yudhvir Singh:64,
+ Shams Mulani:62, Lalit Yadav:62, Suyash Prabhudessai:62, Krishnappa Gowtham:62, Manoj Bhandage:60, Aman Khan:60"""),
+("L", 0, """Jasprit Bumrah:95, Mohammed Shami:87, Arshdeep Singh:87, Kuldeep Yadav:87, Mohammed Siraj:86, Varun Chakravarthy:86,
+ Yuzvendra Chahal:84, Bhuvneshwar Kumar:82, Prasidh Krishna:82, Harshit Rana:80, Deepak Chahar:79, Ravi Bishnoi:79,
+ Akash Deep:78, Mayank Yadav:78, Avesh Khan:78, T Natarajan:78, Khaleel Ahmed:78, Harshal Patel:78, Mukesh Kumar:76,
+ Yash Dayal:76, Sai Kishore:74, Anshul Kamboj:74, Sandeep Sharma:72, Tushar Deshpande:72, Vijaykumar Vyshak:72,
+ Vaibhav Arora:72, Suyash Sharma:72, Umran Malik:70, Rahul Chahar:70, Digvesh Rathi:70, Mohit Sharma:68,
+ Simarjeet Singh:68, Yash Thakur:68, Ashwani Kumar:68, Navdeep Saini:68, Jaydev Unadkat:68, Rasikh Salam:68,
+ Vignesh Puthur:68, Umesh Yadav:66, Ishant Sharma:66, Kartik Tyagi:66, Manimaran Siddharth:66, Kumar Kartikeya:66,
+ Piyush Chawla:66, Mayank Markande:66, Akash Madhwal:66, Kuldeep Sen:66, Gurnoor Brar:66, Harsh Dubey:66,
+ Shivam Mavi:66, Chetan Sakariya:64, Mukesh Choudhary:64, Karn Sharma:62, Sushant Mishra:62, Ajay Mandal:62,
+ Arjun Tendulkar:60, Zeeshan Ansari:60"""),
+("W", 1, """Heinrich Klaasen:91, Jos Buttler:90, Nicholas Pooran:87, Phil Salt:86, Quinton de Kock:84, Tristan Stubbs:80,
+ Devon Conway:79, Jake Fraser-McGurk:78, Jonny Bairstow:78, Ryan Rickelton:78, Josh Inglis:78, Rahmanullah Gurbaz:76,
+ Alex Carey:72, Tim Seifert:72, Matthew Wade:68, Shai Hope:68, Lhuan-dre Pretorius:68, Kusal Mendis:66, Sam Billings:66,
+ Donovan Ferreira:66, Litton Das:66, Jordan Cox:62, Tom Banton:62"""),
+("B", 1, """Travis Head:90, Aiden Markram:82, David Miller:82, Harry Brook:82, David Warner:80, Tim David:80, Glenn Phillips:80,
+ Shimron Hetmyer:79, Faf du Plessis:78, Dewald Brevis:78, Steve Smith:76, Kane Williamson:76, Jacob Bethell:76,
+ Rovman Powell:74, Finn Allen:74, Pathum Nissanka:74, Sherfane Rutherford:74, Ben Duckett:72, Rassie van der Dussen:72,
+ Matthew Short:72, Dawid Malan:68, Evin Lewis:68, Kyle Mayers:68, Rilee Rossouw:66, Cooper Connolly:66,
+ Brandon King:64, Tom Kohler-Cadmore:62, Tim Robinson:62"""),
+("A", 1, """Pat Cummins:88, Sunil Narine:87, Andre Russell:85, Mitchell Marsh:84, Glenn Maxwell:82, Sam Curran:82, Ben Stokes:80,
+ Marcus Stoinis:80, Wanindu Hasaranga:80, Liam Livingstone:80, Rachin Ravindra:80, Will Jacks:80, Marco Jansen:80,
+ Cameron Green:80, Daryl Mitchell:78, Moeen Ali:76, Romario Shepherd:76, Jason Holder:74, Azmatullah Omarzai:74,
+ Mitchell Santner:74, Mohammad Nabi:72, Sikandar Raza:70, Corbin Bosch:68, Mitchell Owen:68, Chris Woakes:68,
+ Sean Abbott:68, Jimmy Neesham:66, Chris Jordan:66, Daniel Sams:66, Aaron Hardie:64"""),
+("L", 1, """Rashid Khan:92, Mitchell Starc:87, Kagiso Rabada:87, Trent Boult:86, Jofra Archer:85, Josh Hazlewood:85,
+ Noor Ahmad:80, Anrich Nortje:80, Matheesha Pathirana:80, Mustafizur Rahman:78, Lockie Ferguson:78, Nathan Ellis:76,
+ Lungi Ngidi:76, Maheesh Theekshana:74, Fazalhaq Farooqi:74, Adam Zampa:74, Alzarri Joseph:74, Matt Henry:74,
+ Naveen-ul-Haq:72, Gerald Coetzee:72, Adil Rashid:72, Shamar Joseph:72, Allah Ghazanfar:72, Kwena Maphaka:72,
+ Spencer Johnson:70, Tim Southee:70, Mujeeb Ur Rahman:70, Xavier Bartlett:70, Jason Behrendorff:68, Akeal Hosein:68,
+ Reece Topley:68, Nuwan Thushara:68, Kyle Jamieson:68, Blessing Muzarabani:68, Tymal Mills:66, Dilshan Madushanka:66,
+ Sandeep Lamichhane:66, Jhye Richardson:66, Adam Milne:66, Ottniel Baartman:64, Luke Wood:62, Riley Meredith:62"""),
+]
 
-IN_F = "Aarav Vihaan Arjun Rohan Karan Aditya Dev Ishaan Kabir Manav Nikhil Pranav Sahil Tanmay Yash Harsh Siddharth Ayush Mihir Kunal Naman Ritvik Shaurya Tushar Vikram Zaid Anmol Veer Lakshya Rudra Aman Jay Parth Sameer".split()
-IN_L = "Mehta Kulkarni Nair Menon Sinha Verma Joshi Patil Rawat Thakur Bose Das Khanna Malhotra Pandey Rana Saxena Trivedi Ahuja Bedi Chopra Ghosh Hooda Kapoor Lal Mishra Naik Oberoi Pillai Qureshi Rao Sethi Tiwari Uppal Wadhwa".split()
-OV_F = "Jack Oliver Liam Noah Ethan Mason Lachlan Callum Riley Tom Hamish Kyle Brandon Jayden Aiden Dylan Hugo Ryan Blake Cameron Marcus Tyler Xavier Zane".split()
-OV_L = "Ashworth Blackwood Carver Dalton Everett Fenwick Gallagher Holloway Ingram Jensen Kirkwood Lambert Marlow Norris Prescott Quinn Redding Sutcliffe Thornton Vance Whitlock Yardley Sinclair Pemberton Hargreaves".split()
+
+def base(r):
+    return 2.0 if r >= 88 else 1.5 if r >= 84 else 1.0 if r >= 78 else .5 if r >= 74 else .3 if r >= 68 else .2
 
 
 def build_pool():
-    pool = []
-    for s in REAL.split(";"):
-        n, k, o, r, b = s.split("|")
-        pool.append(dict(n=n, k=k, o=int(o), r=int(r), b=float(b)))
-    used = {p["n"] for p in pool}
-
-    def name(F, L):
-        while True:
-            n = f"{random.choice(F)} {random.choice(L)}"
-            if n not in used:
-                used.add(n)
-                return n
-
-    def gen(cnt, ov):
-        for _ in range(cnt):
-            k = random.choices("BLAW", [30, 35, 20, 15])[0]
-            r = max(52, min(79, int(random.gauss(68 if ov else 66, 6))))
-            b = 0.2 if r < 66 else 0.3 if r < 70 else 0.5 if r < 74 else 1.0
-            if ov:
-                b = max(b, 0.5)
-            pool.append(dict(n=name(OV_F if ov else IN_F, OV_L if ov else IN_L), k=k, o=int(ov), r=r, b=b))
-
-    gen(150, False)
-    gen(30, True)
+    pool, seen = [], set()
+    for k, o, txt in BLOCKS:
+        for item in txt.replace("\n", " ").split(","):
+            item = item.strip()
+            if not item: continue
+            n, r = item.rsplit(":", 1)
+            if n in seen: continue
+            seen.add(n)
+            r = int(r)
+            b = base(r)
+            if o: b = max(b, .5)
+            pool.append(dict(n=n, k=k, o=o, r=r, b=b))
     return pool
 
 
-def order(pool):
-    """Marquee set first (shuffled), then role-based sets in random order, capped players before uncapped."""
+def order(pool, mq=14):
+    """Marquee set first (shuffled), then role-based sets in random order, higher-rated before lower-rated."""
     ps = sorted(pool, key=lambda p: -p["r"])
-    marquee, rest = ps[:14], ps[14:]
+    marquee, rest = ps[:mq], ps[mq:]
     random.shuffle(marquee)
     out = marquee[:]
     for group in ([p for p in rest if p["r"] >= 70], [p for p in rest if p["r"] < 70]):

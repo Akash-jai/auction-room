@@ -114,7 +114,8 @@ class Room:
         s.teams = [Team(k, TM[i][0], TM[i][1], s.claims.get(i)) for k, i in enumerate(sorted(humans + ais))]
         pool = sorted(build_pool(), key=lambda p: -p["r"])
         n = min(len(pool), max(70, size * 26))  # fewer teams -> shorter auction
-        s.q, s.idx, s.unsold, s.pass2, s.log = order(pool[:14] + random.sample(pool[14:], n - 14)), -1, [], False, []
+        mq = min(30, 14 + size * 2)  # marquee set grows with the number of teams (2 -> 18, 10 -> 30)
+        s.q, s.idx, s.unsold, s.pass2, s.log = order(pool[:mq] + random.sample(pool[mq:], n - mq), mq), -1, [], False, []
         s.phase = "auction"
         s.next_lot()
 
