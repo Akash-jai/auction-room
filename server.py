@@ -57,6 +57,7 @@ class Room:
         s.q, s.idx, s.p, s.cur, s.lead = [], -1, None, None, None
         s.tl = s.na = s.pause = s.t1 = 0
         s.status, s.last, s.log, s.unsold, s.pass2 = "bidding", "", [], [], False
+        s.reaper = None
 
     # ---------- connections ----------
     def attach(s, cid, name, ws):
@@ -180,6 +181,7 @@ class Room:
         try:
             while s.phase == "auction":
                 await asyncio.sleep(1)
+                if not s.alive(): continue  # everyone left (e.g. page reload): freeze the clock
                 s.tick()
                 await s.broadcast()
         except asyncio.CancelledError:
@@ -247,6 +249,17 @@ class Room:
 
 app = FastAPI()
 rooms = {}
+
+
+async def reap(code, room, grace=600):
+    try:
+        await asyncio.sleep(grace)
+    except asyncio.CancelledError:
+        return
+    if not room.alive():
+        if room.task: room.task.cancel()
+        if rooms.get(code) is room: rooms.pop(code, None)
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -264,6 +277,7 @@ async def ws_ep(ws: WebSocket, code: str, cid: str = "", name: str = ""):
     code = "".join(ch for ch in code.upper() if ch.isalnum())[:8] or "MAIN"
     room = rooms.setdefault(code, Room(code))
     cid = (cid or "".join(random.choices(string.ascii_lowercase, k=10)))[:24]
+    if room.reaper: room.reaper.cancel(); room.reaper = None
     room.attach(cid, name, ws)
     await room.broadcast()
     try:
@@ -277,7 +291,6 @@ async def ws_ep(ws: WebSocket, code: str, cid: str = "", name: str = ""):
     finally:
         room.detach(cid, ws)
         if not room.alive():
-            if room.task: room.task.cancel()
-            rooms.pop(code, None)
+            room.reaper = asyncio.create_task(reap(code, room))  # grace period so reloads don't kill the game
         else:
             await room.broadcast()
