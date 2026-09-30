@@ -81,6 +81,7 @@ class Room:
         s.tl = s.na = s.pause = s.t1 = 0
         s.status, s.last, s.log, s.unsold, s.pass2 = "bidding", "", [], [], False
         s.reaper = None
+        s.bids = []  # bid history of the current lot, oldest first
 
     # ---------- connections ----------
     def attach(s, cid, name, ws):
@@ -161,7 +162,7 @@ class Room:
             break
         big = p["b"] >= 1
         s.t1 = 8 if big else 4
-        s.p, s.cur, s.lead, s.status = p, None, None, "bidding"
+        s.p, s.cur, s.lead, s.status, s.bids = p, None, None, "bidding", []
         s.tl, s.na = (12 if big else 6), random.randint(1, 3)
 
     def team_of(s, cid): return next((x for x in s.teams if x.owner == cid), None)
@@ -201,6 +202,7 @@ class Room:
 
     def place(s, t, a):
         s.cur, s.lead, s.tl, s.na = a, t, s.t1, random.randint(1, 3)
+        s.bids.append({"n": t.n, "c": t.c, "a": a})
 
     def bid(s, cid):
         t = next((x for x in s.teams if x.owner == cid), None)
@@ -291,6 +293,7 @@ class Room:
             a = s.nb()
             d["lot"] = {"i": s.idx + 1, "of": len(s.q), "p": s.p, "cur": s.cur, "lead": s.lead.i if s.lead else None,
                         "tl": s.tl, "st": s.status, "nb": a, "last": s.last,
+                        "bids": s.bids[-8:][::-1], "nbids": len(s.bids),
                         "can": bool(me and s.status == "bidding" and me is not s.lead and s.can(me, s.p, a))}
             d["mine"] = me.sq if me else []
             d["log"] = s.log[-10:][::-1]

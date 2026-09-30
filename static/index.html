@@ -16,7 +16,7 @@ button,input,select{font:inherit;color:var(--fg)}
 button{cursor:pointer;border:2px solid var(--fg);background:transparent;border-radius:10px;padding:9px 16px;font-weight:600}
 input,select{border:2px solid var(--line);background:var(--card);border-radius:10px;padding:9px 12px}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-button.go{background:var(--acc);border-color:var(--acc);color:#1a1200;font-weight:800}
+button.go{background:var(--acc);border-color:var(--acc);color:var(--accfg,#1a1200);font-weight:800}
 button:disabled{opacity:.4;cursor:not-allowed}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -37,11 +37,51 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertic
 .pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin:2px;font-size:.85rem}
 .off{background:var(--bad);color:#fff;text-align:center;padding:6px;border-radius:8px;margin-bottom:10px}
 button.pl{display:inline-block;margin:3px;padding:6px 10px;border:2px solid var(--line);background:var(--card);border-radius:10px;font-weight:500;font-size:.9rem;text-align:left}
-button.pl.on{background:var(--acc);border-color:var(--acc);color:#1a1200;font-weight:700}
+button.pl.on{background:var(--acc);border-color:var(--acc);color:var(--accfg,#1a1200);font-weight:700}
 .ok{color:var(--ok);font-weight:700}.no{color:var(--bad);font-weight:700}
 details{margin:4px 0}summary{cursor:pointer}
+.lot{position:relative;transition:border-color .3s}
+.lot.flash{animation:flash .55s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 0 var(--acc)}100%{box-shadow:0 0 0 20px transparent}}
+.bid.pulse{animation:pulse .35s ease-out;display:inline-block}
+@keyframes pulse{0%{transform:scale(1)}40%{transform:scale(1.15)}100%{transform:scale(1)}}
+.shake{animation:shake .5s}
+@keyframes shake{0%,100%{transform:translateX(0)}15%{transform:translateX(-10px)}30%{transform:translateX(9px)}45%{transform:translateX(-7px)}60%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+.tbar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.tbar i{display:block;height:100%;background:var(--acc);width:var(--from);animation:shrink linear forwards}
+.tbar.low i{background:var(--bad)}
+@keyframes shrink{from{width:var(--from)}to{width:0}}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+.stampov{position:fixed;display:flex;align-items:center;justify-content:center;animation:fadeout .4s 2.2s forwards}
+@keyframes fadeout{to{opacity:0}}
+.stampbox{display:grid;gap:2px;text-align:center;border:6px solid var(--tc);color:var(--tc);background:var(--card);border-radius:14px;padding:10px 26px;transform:rotate(-8deg);animation:slam .45s cubic-bezier(.2,1.4,.4,1);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.stampbox b{font-size:clamp(2.6rem,11vw,5rem);line-height:1;letter-spacing:.06em;font-weight:800}
+.stampbox span{font-size:1.1rem;font-weight:700;color:var(--fg)}
+@keyframes slam{0%{transform:scale(3.2) rotate(-20deg);opacity:0}60%{transform:scale(.92) rotate(-8deg);opacity:1}80%{transform:scale(1.05) rotate(-8deg)}100%{transform:scale(1) rotate(-8deg)}}
+.cf{position:absolute;top:-24px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(112vh) rotate(720deg)}}
+#mute{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:10px;z-index:60;border-radius:99px;padding:5px 11px;background:var(--card);border-color:var(--line);font-size:1.05rem}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+.feed{display:grid;gap:4px}
+.fb{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.fb.top{border-color:var(--acc);font-weight:700}
+.pr{padding:8px 10px;border:2px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:6px}
+.pr.hot{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
+.pr.mine .pt{font-weight:800}
+.pt{display:flex;justify-content:space-between;gap:8px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:5px 0}
+.bar i{display:block;height:100%;border-radius:4px;background:var(--acc);transition:width .4s}
+.ps{font-size:.8rem;color:var(--mut)}
+.panel{border:2px solid var(--line);border-radius:14px;background:var(--card);padding:12px}
+.rcs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:6px 0}
+.rc{border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.rc b{font-size:1.3rem}.rc small{color:var(--mut)}
+.chips span{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin:2px;font-size:.82rem}
+.pill.K-W{border-color:#c77d0a}.pill.K-B{border-color:#2b6fd6}.pill.K-A{border-color:#7b3fc4}.pill.K-L{border-color:#1c8a4a}
+
 </style></head>
-<body><main id="app"></main>
+<body><main id="app"></main><div id="fx"></div><button id="mute" aria-label="Toggle sound">🔊</button>
 <script>
 const $=id=>document.getElementById(id),app=$("app");
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -50,19 +90,59 @@ let S=null,ws=null,code=null,SZ=10,name=localStorage.getItem("an")||"";
 let cid=localStorage.getItem("acid");if(!cid){cid=Math.random().toString(36).slice(2,12);localStorage.setItem("acid",cid)}
 const rq=new URLSearchParams(location.search).get("room")||"";
 const send=o=>ws&&ws.readyState==1&&ws.send(JSON.stringify(o));
+
+// ---------- sound + effects ----------
+let AC=null,MUTED=localStorage.getItem("asnd")=="0",FR={},clk={lot:-1,total:12,prev:0};
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state=="suspended")AC.resume();return AC}
+function tone(f,d=.12,type="sine",v=.12,at=0,f2){const a=ac();if(!a||MUTED)return;const t=a.currentTime+at,o=a.createOscillator(),g=a.createGain();
+ o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
+ g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.02)}
+function thud(at=0){const a=ac();if(!a||MUTED)return;const t=a.currentTime+at,n=a.sampleRate*.18|0,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);
+ for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();
+ s.buffer=b;f.type="lowpass";f.frequency.value=500;g.gain.value=.5;s.connect(f);f.connect(g);g.connect(a.destination);s.start(t);tone(110,.2,"sine",.3,at,60)}
+const SFX={bid:()=>tone(660,.09,"triangle",.1),mine:()=>{tone(784,.08,"triangle",.12);tone(1175,.12,"triangle",.1,.07)},
+ out:()=>tone(330,.28,"sawtooth",.07,0,190),tick:()=>tone(1300,.04,"square",.04),gavel:()=>{thud();thud(.22)},
+ fan:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.28,"triangle",.12,i*.12)),uns:()=>tone(330,.45,"sine",.1,0,170)};
+function fg(c){if(!/^#[0-9a-f]{6}$/i.test(c||""))return"#fff";const n=parseInt(c.slice(1),16);return(.299*(n>>16)+.587*(n>>8&255)+.114*(n&255))>150?"#1a1200":"#fff"}
+function accent(){const me=S&&S.teams&&S.you&&S.teams.find(t=>t.i==S.you.team),r=document.documentElement.style;
+ if(me&&S.phase!="lobby"){r.setProperty("--acc",me.c);r.setProperty("--accfg",fg(me.c))}else{r.removeProperty("--acc");r.removeProperty("--accfg")}}
+function confetti(cols){const f=$("fx");for(let i=0;i<80;i++){const e=document.createElement("i");e.className="cf";
+ e.style.cssText=`left:${Math.random()*100}%;background:${cols[i%cols.length]};animation-duration:${1.6+Math.random()*1.6}s;animation-delay:${Math.random()*.5}s;transform:rotate(${Math.random()*360}deg)`;
+ f.appendChild(e);setTimeout(()=>e.remove(),4200)}}
+function showSold(cur){
+ const L=cur.lot,lead=cur.teams.find(t=>t.i==L.lead),y=cur.you.team,r=(document.querySelector(".lot")||document.body).getBoundingClientRect(),o=document.createElement("div");
+ o.className="stampov";o.style.cssText=`top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${r.height}px`;
+ o.innerHTML=`<div class="stampbox" style="--tc:${lead?lead.c:"#7a7a7a"}"><b>${lead?"SOLD":"UNSOLD"}</b>${lead?`<span>${esc(L.p.n)} → ${esc(lead.n)}</span><span>${fm(L.cur)}</span>`:`<span>${esc(L.p.n)}</span>`}</div>`;
+ $("fx").appendChild(o);setTimeout(()=>o.remove(),2700);
+ if(!lead)SFX.uns();else if(lead.i==y){SFX.fan();confetti([lead.c,"#ffd54a","#ffffff","#ff6b6b"])}else SFX.gavel();
+}
+function fx(prev,cur){
+ FR={};
+ if(!prev||prev.phase!="auction"||cur.phase!="auction"||!prev.lot||!cur.lot)return;
+ const a=prev.lot,b=cur.lot,y=cur.you.team;
+ if(a.i!=b.i){clk={lot:b.i,total:Math.max(1,b.tl),prev:b.tl};return}
+ if(b.nbids>a.nbids){FR.bid=1;clk.total=Math.max(1,b.tl);
+  if(b.lead==y){FR.mine=1;SFX.mine()}else if(a.lead==y&&y!=null){FR.outbid=1;SFX.out()}else SFX.bid()}
+ if(b.st=="result"&&a.st!="result")showSold(cur);
+ else if(b.st=="bidding"&&b.tl<a.tl&&b.tl>=1&&b.tl<=3)SFX.tick();
+}
+const mb=$("mute");mb.textContent=MUTED?"🔇":"🔊";
+mb.addEventListener("click",()=>{MUTED=!MUTED;localStorage.setItem("asnd",MUTED?"0":"1");mb.textContent=MUTED?"🔇":"🔊";if(!MUTED){ac();SFX.bid()}});
+document.addEventListener("pointerdown",()=>ac());
 function connect(c){
  code=c.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);history.replaceState(null,"","?room="+code);S=null;render();open();
 }
 function open(){
  const u=(location.protocol=="https:"?"wss":"ws")+"://"+location.host+"/ws/"+code+"?cid="+cid+"&name="+encodeURIComponent(name);
  ws=new WebSocket(u);
- ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t=="state"){S=m;render()}else if(m.t=="err")alert(m.m)};
+ ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t=="state"){const prev=S;S=m;fx(prev,m);render();FR={}}else if(m.t=="err")alert(m.m)};
  ws.onclose=()=>{if(code){if(S)S.off=1;render();setTimeout(open,1500)}};
 }
 function render(){
  if(!code)return landing();
  if(!S)return app.innerHTML="<h1>Connecting…</h1>";
  const off=S.off?'<div class="off">Connection lost. Reconnecting…</div>':"";
+ accent();
  app.innerHTML=off+(S.phase=="lobby"?lobby():S.phase=="auction"?auction():S.phase=="xi"?xiView():end());
 }
 function landing(){
@@ -82,16 +162,37 @@ function lobby(){
  <p>Unclaimed franchises are played by the AI. 2 teams is a duel (about 20 min); 10 teams is the full auction (about 90 min).</p>`:"<p>Waiting for the host to start.</p>"}
  <p>Rules: ${fm(S.limits.purse)} purse, squads of ${S.limits.min} to ${S.limits.max}, at most ${S.limits.ov} overseas players.</p>`;
 }
+function squadPanel(me){
+ const sq=S.mine,cnt=k=>sq.filter(x=>x.k==k).length,W=cnt("W"),B=cnt("B"),A=cnt("A"),Lb=cnt("L"),ov=sq.filter(x=>x.o).length;
+ const roles=[["Keepers",W,2],["Batters",B,6],["All-rounders",A,5],["Bowlers",Lb,8]];
+ const slots=Math.max(0,S.limits.min-sq.length),per=slots?me.purse/slots:0;
+ const chk=(ok,t)=>`<span class="${ok?"ok":"no"}">${ok?"✓":"✗"} ${t}</span>`;
+ const grp=k=>{const l=sq.filter(x=>x.k==k);return l.length?`<div><small>${RL[k]}s</small><br>${l.map(x=>`<span class="pill K-${k}">${esc(x.n)}${x.o?" ✈":""} · ${x.r} · ${fm(x.paid)}</span>`).join("")}</div>`:""};
+ return `<h2>Your squad</h2><div class="panel">
+  <div class="pt"><span>Purse left</span><b>${fm(me.purse)}</b></div>
+  <div class="pt"><span>Squad</span><b>${sq.length} / ${S.limits.max}</b></div>
+  <div class="ps">${slots?`Need ${slots} more to reach ${S.limits.min}. About ${fm(per)} per slot.`:`Minimum squad of ${S.limits.min} reached.`}</div>
+  <div class="pt" style="margin-top:6px"><span>Overseas slots</span><b>${ov} / ${S.limits.ov} used</b></div>
+  <div class="rcs">${roles.map(([n,c,t])=>`<div class="rc"><small>${n}</small><br><b>${c}</b> <small>/ ${t} suggested</small><div class="bar"><i style="width:${Math.min(100,c/t*100)}%"></i></div></div>`).join("")}</div>
+  <div class="chips"><small>Needed for a proper XI</small><br>${chk(W>=1,"Keeper")}${chk(B+W>=4,"4+ batters")}${chk(Lb>=3,"3+ bowlers")}${chk(Lb+A>=5,"5+ bowlers or all-rounders")}</div>
+  <div style="margin-top:8px">${grp("W")}${grp("B")}${grp("A")}${grp("L")}${sq.length?"":"<p>Nobody yet.</p>"}</div></div>`;
+}
 function auction(){
- const L=S.lot,p=L.p,y=S.you,T=S.teams,lead=T.find(t=>t.i==L.lead),me=T.find(t=>t.i==y.team);
- const res=L.st=="result";
- return `<div class="lot"><div>Lot ${L.i} of ${L.of}</div><div class="name">${esc(p.n)}</div>
+ const L=S.lot,p=L.p,y=S.you,T=S.teams,lead=T.find(t=>t.i==L.lead),me=T.find(t=>t.i==y.team),res=L.st=="result";
+ if(clk.lot!=L.i||L.tl>clk.prev)clk.total=Math.max(1,L.tl);clk.lot=L.i;clk.prev=L.tl;
+ const pct=Math.min(100,Math.max(0,L.tl/clk.total*100)),left=Math.max(0,L.tl);
+ return `<div class="lot ${FR.bid?"flash":""}" style="border-color:${lead?lead.c:"var(--fg)"}"><div>Lot ${L.i} of ${L.of}</div><div class="name">${esc(p.n)}</div>
  <div>${RL[p.k]}, ${p.o?"overseas":"Indian"} · rating ${p.r} · base ${fm(p.b)}</div>
- <div class="bid">${fm(L.cur??p.b)}</div>
- ${res?`<div class="stamp ${L.last=="UNSOLD"?"uns":"sold"}">${esc(L.last)}</div>`:`<div class="stamp">${lead?"Leading: "+lead.n:"Waiting for an opening bid"}</div><div class="clock" style="color:${L.tl<=5?"var(--bad)":"inherit"}">${Math.max(0,L.tl)}s</div>`}</div>
- ${me?`<button class="go bigbtn" id="bid" style="background:${me.c};border-color:${me.c};color:#fff" ${L.can?"":"disabled"}>${res?"Next player coming…":me.i==L.lead?"You lead":"Bid "+fm(L.nb)}</button>`:"<p>You are spectating.</p>"}
- <h2>Franchises</h2><div class="tw"><table><tr><th>Team</th><th>Purse</th><th>Squad</th><th>Overseas</th><th>WK / BAT / AR / BOWL</th></tr>${T.map(t=>`<tr><td><b style="color:${t.c}">■</b> ${t.n}${t.o?" ("+esc(t.o)+")":""}${t.i==y.team?" ← you":""}</td><td>${fm(t.purse)}</td><td>${t.cnt}/${S.limits.max}</td><td>${t.ov}/${S.limits.ov}</td><td>${t.W} / ${t.B} / ${t.A} / ${t.L}</td></tr>`).join("")}</table></div>
- ${me?`<h2>Your squad (${S.mine.length})</h2><div>${S.mine.map(x=>`<span class="pill">${esc(x.n)} · ${x.k}${x.o?"*":""} ${x.r} · ${fm(x.paid)}</span>`).join("")||"<p>Nobody yet.</p>"}</div>`:""}
+ <div><span class="bid ${FR.bid?"pulse":""}">${fm(L.cur??p.b)}</span></div>
+ ${res?`<div class="stamp ${L.last=="UNSOLD"?"uns":"sold"}">${esc(L.last)}</div>`:`<div class="stamp">${lead?`Leading: <b style="color:${lead.c}">${esc(lead.n)}</b>`:"Waiting for an opening bid"}</div>
+ <div class="tbar ${left<=2?"low":""}"><i style="--from:${pct}%;animation-duration:${left}s"></i></div><div class="clock" style="color:${left<=5?"var(--bad)":"inherit"}">${left}s</div>`}</div>
+ ${me?`<button class="go bigbtn ${FR.outbid?"shake":""}" id="bid" style="background:${me.c};border-color:${me.c};color:${fg(me.c)}" ${L.can?"":"disabled"}>${res?"Next player coming…":me.i==L.lead?"You lead":"Bid "+fm(L.nb)}</button>`:"<p>You are spectating.</p>"}
+ <div class="cols"><div>
+  <h2>Bids on this player</h2><div class="feed">${L.bids.length?L.bids.map((b,i)=>`<div class="fb ${i==0?"top":""}"><span><b style="color:${b.c}">■</b> ${esc(b.n)}</span><span>${fm(b.a)}</span></div>`).join(""):"<p>No bids yet.</p>"}</div>
+  <h2>Purses</h2>${T.map(t=>`<div class="pr ${t.i==L.lead?"hot":""} ${t.i==y.team?"mine":""}"><div class="pt"><span><b style="color:${t.c}">■</b> ${esc(t.n)}${t.o?" ("+esc(t.o)+")":""}${t.i==y.team?" ← you":""}</span><span>${fm(t.purse)}</span></div>
+   <div class="bar"><i style="width:${Math.max(0,t.purse/S.limits.purse*100)}%;background:${t.c}"></i></div>
+   <div class="ps">${t.cnt}/${S.limits.max} players · ${t.ov}/${S.limits.ov} overseas · WK ${t.W} · BAT ${t.B} · AR ${t.A} · BOWL ${t.L}</div></div>`).join("")}
+ </div><div>${me?squadPanel(me):""}</div></div>
  <h2>Sales</h2><div class="log">${S.log.map(l=>`<div>${esc(l)}</div>`).join("")}</div>
  ${y.host?`<p><button data-a="endnow">End auction now</button></p>`:""}`;
 }
