@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Auction Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f1e4;--fg:#10244f;--card:#fffdf6;--line:#d9d0b8;--acc:#e8890c;--mut:#5d6a8a;--ok:#1c8a4a;--bad:#c23a2b;padding-top:env(safe-area-inset-top,0)}
+@media (prefers-color-scheme:dark){:root{--bg:#0c1c40;--fg:#fbf3dc;--card:#14295a;--line:#2b4278;--acc:#ffb020;--mut:#9fb0d6}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:clamp(2rem,6vw,3.2rem);line-height:1;margin:.2em 0 .3em;font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.1rem;margin:1.4em 0 .5em}
+p{margin:.4em 0;color:var(--mut)}
+button,input,select{font:inherit;color:var(--fg)}
+button{cursor:pointer;border:2px solid var(--fg);background:transparent;border-radius:10px;padding:9px 16px;font-weight:600}
+input,select{border:2px solid var(--line);background:var(--card);border-radius:10px;padding:9px 12px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button.go{background:var(--acc);border-color:var(--acc);color:#1a1200;font-weight:800}
+button:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.team{border:2px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;text-align:left}
+.team i{display:block;height:6px;border-radius:3px;margin-bottom:8px}
+.team.me{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
+.team.taken{opacity:.55}
+.team small{display:block;color:var(--mut);font-weight:400}
+.lot{background:var(--card);border:2px solid var(--fg);border-radius:16px;padding:18px;display:grid;gap:6px}
+.name{font-size:clamp(1.6rem,5vw,2.4rem);font-weight:800;line-height:1.1}
+.bid{font-size:clamp(2.4rem,9vw,4.4rem);font-weight:800;color:var(--acc);line-height:1}
+.clock{font-size:2.6rem;font-weight:800;font-variant-numeric:tabular-nums}
+.stamp{font-weight:800;font-size:1.3rem}.sold{color:var(--ok)}.uns{color:var(--bad)}
+.bigbtn{width:100%;padding:16px;font-size:1.3rem;margin:10px 0}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tw{overflow-x:auto}.log{max-height:170px;overflow:auto;font-size:.9rem;color:var(--mut)}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin:2px;font-size:.85rem}
+.off{background:var(--bad);color:#fff;text-align:center;padding:6px;border-radius:8px;margin-bottom:10px}
+details{margin:4px 0}summary{cursor:pointer}
+</style></head>
+<body><main id="app"></main>
+<script>
+const $=id=>document.getElementById(id),app=$("app");
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fm=x=>"₹"+Math.round(x*100)/100+" cr",RL={B:"Batter",L:"Bowler",A:"All-rounder",W:"Keeper"};
+let S=null,ws=null,code=null,SZ=10,name=localStorage.getItem("an")||"";
+let cid=localStorage.getItem("acid");if(!cid){cid=Math.random().toString(36).slice(2,12);localStorage.setItem("acid",cid)}
+const rq=new URLSearchParams(location.search).get("room")||"";
+const send=o=>ws&&ws.readyState==1&&ws.send(JSON.stringify(o));
+function connect(c){
+ code=c.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);history.replaceState(null,"","?room="+code);S=null;render();open();
+}
+function open(){
+ const u=(location.protocol=="https:"?"wss":"ws")+"://"+location.host+"/ws/"+code+"?cid="+cid+"&name="+encodeURIComponent(name);
+ ws=new WebSocket(u);
+ ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t=="state"){S=m;render()}else if(m.t=="err")alert(m.m)};
+ ws.onclose=()=>{if(code){if(S)S.off=1;render();setTimeout(open,1500)}};
+}
+function render(){
+ if(!code)return landing();
+ if(!S)return app.innerHTML="<h1>Connecting…</h1>";
+ const off=S.off?'<div class="off">Connection lost. Reconnecting…</div>':"";
+ app.innerHTML=off+(S.phase=="lobby"?lobby():S.phase=="auction"?auction():end());
+}
+function landing(){
+ app.innerHTML=`<h1>Auction Room</h1><p>A live multiplayer player auction. Bid against friends and AI franchises. Unofficial fan project; ratings are made up.</p>
+ <h2>Your name</h2><div class="row"><input id="nm" maxlength="16" placeholder="e.g. Akash" value="${esc(name)}"></div>
+ <h2>${rq?"Join room "+esc(rq):"Start or join"}</h2>
+ <div class="row">${rq?`<button class="go" data-a="join" data-c="${esc(rq)}">Join room ${esc(rq)}</button>`:
+ `<button class="go" data-a="create">Create a room</button><input id="rc" maxlength="8" placeholder="Room code" size="10"><button data-a="join">Join</button>`}</div>`;
+}
+function lobby(){
+ const link=location.origin+"/?room="+S.code,y=S.you;
+ return `<h1>Room ${esc(S.code)}</h1>
+ <p>Share this link with friends:</p><div class="row"><input id="lk" readonly value="${esc(link)}" size="34"><button data-a="copy">Copy</button></div>
+ <h2>Players here</h2><div>${S.people.map(p=>`<span class="pill">${esc(p.n)}${p.host?" (host)":""}${p.on?"":" · away"}</span>`).join("")}</div>
+ <h2>Pick your franchise</h2><div class="grid">${S.fr.map((f,i)=>`<button class="team ${y.claim==i?"me":f.o?"taken":""}" data-a="pick" data-i="${i}"><i style="background:${f.c}"></i>${f.n}<small>${y.claim==i?"You":f.o?esc(f.o):"AI unless claimed"}</small></button>`).join("")}</div>
+ ${y.host?`<h2>Start</h2><div class="row"><label>Teams in the auction <select id="sz">${[2,4,6,8,10].map(n=>`<option ${n==SZ?"selected":""}>${n}</option>`).join("")}</select></label><button class="go" data-a="start">Start auction</button></div>
+ <p>Unclaimed franchises are played by the AI. 2 teams is a duel (about 20 min); 10 teams is the full auction (about 90 min).</p>`:"<p>Waiting for the host to start.</p>"}
+ <p>Rules: ${fm(S.limits.purse)} purse, squads of ${S.limits.min} to ${S.limits.max}, at most ${S.limits.ov} overseas players.</p>`;
+}
+function auction(){
+ const L=S.lot,p=L.p,y=S.you,T=S.teams,lead=T.find(t=>t.i==L.lead),me=T.find(t=>t.i==y.team);
+ const res=L.st=="result";
+ return `<div class="lot"><div>Lot ${L.i} of ${L.of}</div><div class="name">${esc(p.n)}</div>
+ <div>${RL[p.k]}, ${p.o?"overseas":"Indian"} · rating ${p.r} · base ${fm(p.b)}</div>
+ <div class="bid">${fm(L.cur??p.b)}</div>
+ ${res?`<div class="stamp ${L.last=="UNSOLD"?"uns":"sold"}">${esc(L.last)}</div>`:`<div class="stamp">${lead?"Leading: "+lead.n:"Waiting for an opening bid"}</div><div class="clock" style="color:${L.tl<=5?"var(--bad)":"inherit"}">${Math.max(0,L.tl)}s</div>`}</div>
+ ${me?`<button class="go bigbtn" id="bid" style="background:${me.c};border-color:${me.c};color:#fff" ${L.can?"":"disabled"}>${res?"Next player coming…":me.i==L.lead?"You lead":"Bid "+fm(L.nb)}</button>`:"<p>You are spectating.</p>"}
+ <h2>Franchises</h2><div class="tw"><table><tr><th>Team</th><th>Purse</th><th>Squad</th><th>Overseas</th><th>WK / BAT / AR / BOWL</th></tr>${T.map(t=>`<tr><td><b style="color:${t.c}">■</b> ${t.n}${t.o?" ("+esc(t.o)+")":""}${t.i==y.team?" ← you":""}</td><td>${fm(t.purse)}</td><td>${t.cnt}/${S.limits.max}</td><td>${t.ov}/${S.limits.ov}</td><td>${t.W} / ${t.B} / ${t.A} / ${t.L}</td></tr>`).join("")}</table></div>
+ ${me?`<h2>Your squad (${S.mine.length})</h2><div>${S.mine.map(x=>`<span class="pill">${esc(x.n)} · ${x.k}${x.o?"*":""} ${x.r} · ${fm(x.paid)}</span>`).join("")||"<p>Nobody yet.</p>"}</div>`:""}
+ <h2>Sales</h2><div class="log">${S.log.map(l=>`<div>${esc(l)}</div>`).join("")}</div>
+ ${y.host?`<p><button data-a="endnow">End auction now</button></p>`:""}`;
+}
+function end(){
+ const r=S.res;
+ return `<h1>${esc(r[0].n)} win the auction</h1><p>Score = best playing XI (max 4 overseas, one keeper), with bonuses for 5+ bowling options and a keeper. Squads under ${S.limits.min} are penalised.</p>
+ <div class="tw"><table><tr><th>#</th><th>Franchise</th><th>Score</th><th>Purse left</th><th>Squad</th></tr>${r.map((x,i)=>`<tr><td>${i+1}</td><td><b style="color:${x.c}">■</b> ${x.n}${x.o?" ("+esc(x.o)+")":""}</td><td>${x.score}</td><td>${fm(x.purse)}</td><td><details><summary>${x.sq.length} players · XI: ${esc(x.xi.join(", "))}</summary>${x.sq.map(p=>esc(p.n)+" "+fm(p.paid)).join(" · ")}</details></td></tr>`).join("")}</table></div>
+ ${S.you.host?`<p><button class="go" data-a="lobby">Back to lobby</button></p>`:""}`;
+}
+app.addEventListener("pointerdown",e=>{if(e.target.closest("#bid")&&S&&S.lot&&S.lot.can)send({t:"bid"})});
+app.addEventListener("click",e=>{
+ const b=e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+ if(a=="create"||a=="join"){
+  const n=($("nm").value||"").trim();if(!n){$("nm").focus();return}name=n;localStorage.setItem("an",n);
+  const c=a=="create"?Array.from({length:4},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.random()*24|0]).join(""):(b.dataset.c||$("rc").value);
+  if(c.trim())connect(c);
+ }else if(a=="pick")send({t:"pick",i:+b.dataset.i});
+ else if(a=="start"){SZ=+$("sz").value;send({t:"start",size:SZ})}
+ else if(a=="endnow"){if(confirm("End the auction for everyone now?"))send({t:"end"})}
+ else if(a=="lobby")send({t:"lobby"});
+ else if(a=="copy"){const v=$("lk").value;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>b.textContent="Copied").catch(()=>{$("lk").select();b.textContent="Select and copy"})}
+});
+render();
+</script></body></html>
