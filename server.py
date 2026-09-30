@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 
 from players import build_pool, order, pick
 
-PURSE, MAXS, MINS, MAXO = 120.0, 25, 18, 8
+PURSE, MAXS, MINS, MAXO, MAXO_XI = 120.0, 25, 18, 8, 4
 TM = [("Mumbai", "#1c5fd1"), ("Chennai", "#f2b705"), ("Bengaluru", "#d3222a"), ("Kolkata", "#5b2a86"),
       ("Delhi", "#2a7fd4"), ("Hyderabad", "#f26a1b"), ("Punjab", "#c8102e"), ("Rajasthan", "#e8388f"),
       ("Gujarat", "#1b3a57"), ("Lucknow", "#22a5b8")]
@@ -24,27 +24,50 @@ class Team:
         s.purse, s.sq = PURSE, []
         s.ag, s.st, s.sn = random.uniform(.85, 1.25), random.uniform(.8, 1.4), random.random() < .3
         s.target = random.randint(19, 24)  # AI stops buying around here, like real franchises
+        s.xi, s.locked, s.final = [], False, None  # playing XI: picked names, locked flag, final players
 
     def cnt(s, k): return sum(1 for x in s.sq if x["k"] == k)
     def ov(s): return sum(1 for x in s.sq if x["o"])
 
 
-def best_xi(sq):
+RULES = (("W", 1, "wicketkeeper"), ("BW", 4, "batters (keeper counts)"), ("L", 3, "specialist bowlers"),
+         ("LA", 5, "bowlers or all-rounders"))  # a proper XI: keeper, batting depth, bowling attack
+
+
+def needs(sq):
+    """Rule minimums, relaxed only if the squad simply doesn't contain enough players of that kind."""
+    return [(ks, min(n, sum(1 for x in sq if x["k"] in ks)), label) for ks, n, label in RULES]
+
+
+def xi_problems(sq, names):
+    by = {p["n"]: p for p in sq}
+    xi = [by[n] for n in names if n in by]
+    return [f"at least {n} {label}" for ks, n, label in needs(sq) if sum(1 for x in xi if x["k"] in ks) < n]
+
+
+def build_xi(sq, seed=()):
+    """Best balanced XI. AI franchises use this; humans only if they never locked in. `seed` = players to keep."""
+    by = {p["n"]: p for p in sq}
+    sel = [by[n] for n in seed if n in by][:11]
     ps = sorted(sq, key=lambda x: -x["r"])
-    wk = [x for x in ps if x["k"] == "W"]
-    sel = [wk[0]] if wk else []
+
+    def ok(x): return x not in sel and len(sel) < 11 and not (x["o"] and sum(1 for y in sel if y["o"]) >= MAXO_XI)
+    def cnt(ks): return sum(1 for y in sel if y["k"] in ks)
+    for ks, need in (("W", 1), ("L", 3), ("BW", 4), ("LA", 5)):
+        for x in ps:
+            if cnt(ks) >= need or len(sel) >= 11: break
+            if x["k"] in ks and ok(x): sel.append(x)
     for x in ps:
         if len(sel) >= 11: break
-        if x in sel: continue
-        if x["o"] and sum(1 for y in sel if y["o"]) >= 4: continue
-        sel.append(x)
+        if ok(x): sel.append(x)
     return sel
 
 
 def score(t):
-    xi = best_xi(t.sq)
+    xi = t.final or build_xi(t.sq)
     s = sum(p["r"] for p in xi)
     s += 10 if sum(1 for p in xi if p["k"] in "LA") >= 5 else 0
+    s += 6 if sum(1 for p in xi if p["k"] in "BWA") >= 5 else 0
     s += 8 if any(p["k"] == "W" for p in xi) else 0
     s -= 100 if len(t.sq) < MINS else 0
     return s, xi
@@ -141,7 +164,39 @@ class Room:
         s.p, s.cur, s.lead, s.status = p, None, None, "bidding"
         s.tl, s.na = (12 if big else 6), random.randint(1, 3)
 
-    def finish(s):
+    def team_of(s, cid): return next((x for x in s.teams if x.owner == cid), None)
+
+    def finish(s):  # auction over -> everyone picks a playing XI
+        s.phase = "xi"
+        for t in s.teams:
+            t.final = None
+            t.xi = [p["n"] for p in build_xi(t.sq)] if not t.owner else []  # humans start with an empty XI
+            t.locked = not t.owner  # AI franchises lock instantly
+
+    def set_xi(s, cid, names):
+        t = s.team_of(cid)
+        if not t or s.phase != "xi" or not isinstance(names, list): return None
+        names = [n for n in names if isinstance(n, str)]
+        by = {p["n"]: p for p in t.sq}
+        if len(set(names)) != len(names) or any(n not in by for n in names): return "Invalid pick."
+        if len(names) > 11: return "An XI has 11 players."
+        if sum(1 for n in names if by[n]["o"]) > MAXO_XI: return f"Max {MAXO_XI} overseas players in the XI."
+        t.xi, t.locked = names, False
+        return None
+
+    def lock(s, cid):
+        t = s.team_of(cid)
+        if not t or s.phase != "xi": return None
+        if len(t.xi) != min(11, len(t.sq)): return "Pick 11 players first."
+        bad = xi_problems(t.sq, t.xi)
+        if bad: return "Not a proper XI. You need " + ", ".join(bad) + "."
+        t.locked = True
+        if all(x.locked for x in s.teams): s.reveal()
+        return None
+
+    def reveal(s):
+        for t in s.teams:
+            t.final = build_xi(t.sq, t.xi)
         s.phase = "end"
 
     def place(s, t, a):
@@ -209,6 +264,13 @@ class Room:
             s.bid(cid)
         elif t == "end" and cid == s.host and s.phase == "auction":
             s.finish()
+        elif t in ("xi", "lock", "unlock", "reveal") and s.phase == "xi":
+            me, err = s.team_of(cid), None
+            if t == "xi": err = s.set_xi(cid, m.get("names"))
+            elif t == "lock": err = s.lock(cid)
+            elif t == "unlock" and me: me.locked = False
+            elif t == "reveal" and cid == s.host: s.reveal()
+            if err and c["ws"]: await c["ws"].send_text(json.dumps({"t": "err", "m": err}))
         elif t == "lobby" and cid == s.host and s.phase == "end":
             s.phase, s.teams, s.claims = "lobby", [], {}
         await s.broadcast()
@@ -232,6 +294,12 @@ class Room:
                         "can": bool(me and s.status == "bidding" and me is not s.lead and s.can(me, s.p, a))}
             d["mine"] = me.sq if me else []
             d["log"] = s.log[-10:][::-1]
+        if s.phase == "xi":
+            d["mine"] = me.sq if me else []
+            d["xi"] = {"sel": me.xi if me else [], "locked": bool(me and me.locked), "max_ov": MAXO_XI,
+                       "rules": [{"ks": ks, "need": n, "label": label} for ks, n, label in needs(me.sq)] if me else [],
+                       "wait": [{"n": t.n, "who": s.cl.get(t.owner, {}).get("name"), "ok": t.locked}
+                                for t in s.teams if t.owner]}
         if s.phase == "end":
             res = []
             for t in s.teams:

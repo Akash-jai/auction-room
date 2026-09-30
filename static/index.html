@@ -36,6 +36,9 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertic
 .tw{overflow-x:auto}.log{max-height:170px;overflow:auto;font-size:.9rem;color:var(--mut)}
 .pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin:2px;font-size:.85rem}
 .off{background:var(--bad);color:#fff;text-align:center;padding:6px;border-radius:8px;margin-bottom:10px}
+button.pl{display:inline-block;margin:3px;padding:6px 10px;border:2px solid var(--line);background:var(--card);border-radius:10px;font-weight:500;font-size:.9rem;text-align:left}
+button.pl.on{background:var(--acc);border-color:var(--acc);color:#1a1200;font-weight:700}
+.ok{color:var(--ok);font-weight:700}.no{color:var(--bad);font-weight:700}
 details{margin:4px 0}summary{cursor:pointer}
 </style></head>
 <body><main id="app"></main>
@@ -60,7 +63,7 @@ function render(){
  if(!code)return landing();
  if(!S)return app.innerHTML="<h1>Connecting…</h1>";
  const off=S.off?'<div class="off">Connection lost. Reconnecting…</div>':"";
- app.innerHTML=off+(S.phase=="lobby"?lobby():S.phase=="auction"?auction():end());
+ app.innerHTML=off+(S.phase=="lobby"?lobby():S.phase=="auction"?auction():S.phase=="xi"?xiView():end());
 }
 function landing(){
  app.innerHTML=`<h1>Auction Room</h1><p>A live multiplayer player auction. Bid against friends and AI franchises. Unofficial fan project; ratings are made up.</p>
@@ -92,9 +95,34 @@ function auction(){
  <h2>Sales</h2><div class="log">${S.log.map(l=>`<div>${esc(l)}</div>`).join("")}</div>
  ${y.host?`<p><button data-a="endnow">End auction now</button></p>`:""}`;
 }
+function xiInfo(sel,sq){
+ const by={};sq.forEach(x=>by[x.n]=x);const xi=sel.map(n=>by[n]).filter(Boolean);
+ const c=k=>xi.filter(x=>k.includes(x.k)).length;
+ const o={xi,n:xi.length,ov:xi.filter(x=>x.o).length,wk:c("W"),bowl:c("LA"),bat:c("BWA"),base:xi.reduce((a,x)=>a+x.r,0)};
+ o.pts=(o.wk?8:0)+(o.bowl>=5?10:0)+(o.bat>=5?6:0);return o;
+}
+function xiView(){
+ const y=S.you,X=S.xi,me=S.teams.find(t=>t.i==y.team);
+ const wait=`<h2>Who has locked their XI</h2><div>${X.wait.map(w=>`<span class="pill">${esc(w.n)}${w.who?" ("+esc(w.who)+")":""} · ${w.ok?"✓ locked":"picking…"}</span>`).join("")}</div>`;
+ const host=y.host?`<p><button data-a="reveal">Reveal results now</button></p>`:"";
+ if(!me)return `<h1>Teams are picking their XI</h1><p>You are spectating. Results appear when everyone locks in.</p>${wait}${host}`;
+ const I=xiInfo(X.sel,S.mine),sel=new Set(X.sel),lk=X.locked;
+ const ready=I.n==Math.min(11,S.mine.length)&&X.rules.every(r=>I.xi.filter(x=>r.ks.includes(x.k)).length>=r.need);
+ const grp=k=>{const l=S.mine.filter(x=>x.k==k).sort((a,b)=>b.r-a.r);
+  return l.length?`<h2>${RL[k]}s (${l.length})</h2><div>${l.map(x=>`<button class="pl ${sel.has(x.n)?"on":""}" data-a="tog" data-n="${esc(x.n)}" ${lk?"disabled":""}>${esc(x.n)}${x.o?" ✈":""} · ${x.r}</button>`).join("")}</div>`:""};
+ const t=(ok,txt)=>`<span class="${ok?"ok":"no"}">${ok?"✓":"✗"}</span> ${txt}`;
+ return `<h1>Pick your XI</h1><p>Choose your 11 from your squad, like a proper cricket team: a keeper, batting depth and a full bowling attack. Max ${X.max_ov} overseas (✈). Tap a player to add or remove.</p>
+ <div class="lot"><div class="name">${I.n} / 11 selected</div>
+ <div>Overseas ${I.ov}/${X.max_ov} · Rating total ${I.base}</div>
+ <div>${X.rules.map(r=>{const c=I.xi.filter(x=>r.ks.includes(x.k)).length;return t(c>=r.need,"At least "+r.need+" "+r.label+" (you have "+c+")")}).join("<br>")}</div>
+ <div>Bonuses: ${I.wk?"keeper +8 ":""}${I.bowl>=5?"· bowling attack +10 ":""}${I.bat>=5?"· batting depth +6":""}</div>
+ <div class="stamp">Projected score: ${I.base+I.pts}</div></div>
+ <div class="row" style="margin-top:10px">${lk?`<button data-a="unlock">Edit XI</button><span class="ok">Locked ✓ waiting for others</span>`:`<button class="go" data-a="lock" ${ready?"":"disabled"}>Lock my XI</button>`}</div>
+ ${grp("W")}${grp("B")}${grp("A")}${grp("L")}${wait}${host}`;
+}
 function end(){
  const r=S.res;
- return `<h1>${esc(r[0].n)} win the auction</h1><p>Score = best playing XI (max 4 overseas, one keeper), with bonuses for 5+ bowling options and a keeper. Squads under ${S.limits.min} are penalised.</p>
+ return `<h1>${esc(r[0].n)} win the auction</h1><p>Score = total rating of each team's playing XI (max 4 overseas), plus bonuses: keeper +8, bowling attack of 5+ bowlers or all-rounders +10, batting depth of 5+ batters, keepers or all-rounders +6. Squads under ${S.limits.min} are penalised.</p>
  <div class="tw"><table><tr><th>#</th><th>Franchise</th><th>Score</th><th>Purse left</th><th>Squad</th></tr>${r.map((x,i)=>`<tr><td>${i+1}</td><td><b style="color:${x.c}">■</b> ${x.n}${x.o?" ("+esc(x.o)+")":""}</td><td>${x.score}</td><td>${fm(x.purse)}</td><td><details><summary>${x.sq.length} players · XI: ${esc(x.xi.join(", "))}</summary>${x.sq.map(p=>esc(p.n)+" "+fm(p.paid)).join(" · ")}</details></td></tr>`).join("")}</table></div>
  ${S.you.host?`<p><button class="go" data-a="lobby">Back to lobby</button></p>`:""}`;
 }
@@ -109,6 +137,17 @@ app.addEventListener("click",e=>{
  else if(a=="start"){SZ=+$("sz").value;send({t:"start",size:SZ})}
  else if(a=="endnow"){if(confirm("End the auction for everyone now?"))send({t:"end"})}
  else if(a=="lobby")send({t:"lobby"});
+ else if(a=="tog"){
+  if(!S.xi||S.xi.locked)return;const by={};S.mine.forEach(x=>by[x.n]=x);const n=b.dataset.n;let sel=[...S.xi.sel];
+  if(sel.includes(n))sel=sel.filter(x=>x!=n);
+  else{if(sel.length>=11){alert("You already have 11. Remove someone first.");return}
+   if(by[n].o&&sel.filter(m=>by[m].o).length>=S.xi.max_ov){alert("Max "+S.xi.max_ov+" overseas players in the XI.");return}
+   sel.push(n)}
+  send({t:"xi",names:sel});
+ }
+ else if(a=="lock")send({t:"lock"});
+ else if(a=="unlock")send({t:"unlock"});
+ else if(a=="reveal"){if(confirm("Show results now? Anyone who has not locked gets a balanced XI filled in for them."))send({t:"reveal"})}
  else if(a=="copy"){const v=$("lk").value;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>b.textContent="Copied").catch(()=>{$("lk").select();b.textContent="Select and copy"})}
 });
 render();

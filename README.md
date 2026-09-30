@@ -3,8 +3,8 @@
 A live, multiplayer, IPL-style player auction. Friends join a room from a link and bid in real time;
 any franchise nobody claims is played by an AI with its own strategy.
 
-Unofficial fan project. Uses generic city names, no logos. Player ratings are made up, and about 180
-of the ~240 players are generated fictional names.
+Unofficial fan project. Uses generic city names, no logos. Player ratings are made-up estimates; all players are real, current and retired IPL players.
+
 
 ## Features
 - Room codes and share links, no accounts. The host picks how many teams play (2 = duel, up to 10).
@@ -13,7 +13,7 @@ of the ~240 players are generated fictional names.
 - Server-authoritative: the server owns the clock, bids and rules, so clients cannot cheat.
 - AI franchises with personalities: squad-balance needs, scarcity awareness, purse pacing, star chasers, snipers.
   If a human disconnects, their team is played by the AI until they return (same browser).
-- Final ranking scores each squad by its best playing XI (max 4 overseas, one keeper).
+- After the auction each player picks their playing XI (max 4 overseas) and locks it in; AI teams auto-pick. Score = XI rating total + bonuses for a keeper, 5+ bowling options and 5+ batting options.
 
 ## Run locally
 ```bash
