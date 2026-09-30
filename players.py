@@ -117,14 +117,38 @@ def order(pool, mq=14):
     return out
 
 
-def pick(pool, n, mq, max_ov=.38):
-    """Top `mq` players always play; the rest is a random sample with a realistic overseas share."""
+# Fan-favourite big names, in priority order. They always play (as many as fit: small auctions take the first ones).
+FAMOUS = ["MS Dhoni", "Suresh Raina", "Dale Steyn", "Virender Sehwag", "Sachin Tendulkar", "Shane Warne", "Yuvraj Singh",
+ "Gautam Gambhir", "Shikhar Dhawan", "Andre Russell", "Glenn Maxwell", "Sunil Narine", "Kieron Pollard", "Dwayne Bravo",
+ "Shane Watson", "Ravichandran Ashwin", "Harbhajan Singh", "Yuzvendra Chahal", "Trent Boult", "Jofra Archer",
+ "Josh Hazlewood", "Mohammed Siraj", "Bhuvneshwar Kumar", "Faf du Plessis", "David Warner", "Quinton de Kock",
+ "Kane Williamson", "Steve Smith", "Mitchell Marsh", "Marcus Stoinis", "Liam Livingstone", "Sam Curran", "Ben Stokes",
+ "Tilak Varma", "Rinku Singh", "Abhishek Sharma", "Axar Patel", "Varun Chakravarthy", "Rajat Patidar", "Phil Salt",
+ "Mustafizur Rahman", "Wanindu Hasaranga", "Zaheer Khan", "Ashish Nehra", "Brendon McCullum", "Kumar Sangakkara",
+ "Kevin Pietersen", "Michael Hussey", "Matthew Hayden", "Jacques Kallis", "Imran Tahir", "Dinesh Karthik",
+ "Robin Uthappa", "Ambati Rayudu", "Rahul Dravid", "Sourav Ganguly", "Andrew Symonds", "Brett Lee", "Morne Morkel",
+ "Washington Sundar", "Shivam Dube", "Deepak Chahar", "T Natarajan", "Prasidh Krishna", "Harshit Rana", "Noor Ahmad",
+ "Matheesha Pathirana", "Tim David", "Shimron Hetmyer", "David Miller", "Aiden Markram", "Harry Brook",
+ "Devdutt Padikkal", "Ishan Kishan", "Jitesh Sharma", "Dhruv Jurel", "Riyan Parag", "Mitchell Johnson",
+ "Chris Morris", "Jason Roy", "Eoin Morgan", "Yusuf Pathan", "Irfan Pathan", "Ricky Ponting", "Glenn McGrath"]
+
+
+def pick(pool, n, mq, max_ov=.38, cap=.6):
+    """Top `mq` by rating + famous names always play (up to `cap` of the auction); the rest is a random sample
+    with a realistic overseas share."""
     ps = sorted(pool, key=lambda p: -p["r"])
-    top, rest = ps[:mq], ps[mq:]
+    g = ps[:mq]
+    have = {p["n"] for p in g}
+    by = {p["n"]: p for p in pool}
+    for nm in FAMOUS:
+        if len(g) >= int(cap * n): break
+        if nm in by and nm not in have:
+            g.append(by[nm]); have.add(nm)
+    rest = [p for p in pool if p["n"] not in have]
     ov = [p for p in rest if p["o"]]
     ind = [p for p in rest if not p["o"]]
-    want_ov = min(len(ov), max(0, round(max_ov * n) - sum(p["o"] for p in top)))
-    take_ov = want_ov
-    take_in = min(len(ind), n - mq - take_ov)
-    take_ov = min(len(ov), n - mq - take_in)
-    return top + random.sample(ind, take_in) + random.sample(ov, take_ov)
+    room = n - len(g)
+    want_ov = min(len(ov), max(0, round(max_ov * n) - sum(p["o"] for p in g)), room)
+    take_in = min(len(ind), room - want_ov)
+    take_ov = min(len(ov), room - take_in)
+    return g + random.sample(ind, take_in) + random.sample(ov, take_ov)
