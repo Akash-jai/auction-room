@@ -78,7 +78,7 @@ function lobby(){
  <p>Share this link with friends:</p><div class="row"><input id="lk" readonly value="${esc(link)}" size="34"><button data-a="copy">Copy</button></div>
  <h2>Players here</h2><div>${S.people.map(p=>`<span class="pill">${esc(p.n)}${p.host?" (host)":""}${p.on?"":" · away"}</span>`).join("")}</div>
  <h2>Pick your franchise</h2><div class="grid">${S.fr.map((f,i)=>`<button class="team ${y.claim==i?"me":f.o?"taken":""}" data-a="pick" data-i="${i}"><i style="background:${f.c}"></i>${f.n}<small>${y.claim==i?"You":f.o?esc(f.o):"AI unless claimed"}</small></button>`).join("")}</div>
- ${y.host?`<h2>Start</h2><div class="row"><label>Teams in the auction <select id="sz">${[2,4,6,8,10].map(n=>`<option ${n==SZ?"selected":""}>${n}</option>`).join("")}</select></label><button class="go" data-a="start">Start auction</button></div>
+ ${y.host?`<h2>Start</h2><div class="row"><label>Teams in the auction <select id="sz">${[2,3,4,5,6,7,8,9,10].map(n=>`<option ${n==SZ?"selected":""}>${n}</option>`).join("")}</select></label><button class="go" data-a="start">Start auction</button></div>
  <p>Unclaimed franchises are played by the AI. 2 teams is a duel (about 20 min); 10 teams is the full auction (about 90 min).</p>`:"<p>Waiting for the host to start.</p>"}
  <p>Rules: ${fm(S.limits.purse)} purse, squads of ${S.limits.min} to ${S.limits.max}, at most ${S.limits.ov} overseas players.</p>`;
 }
