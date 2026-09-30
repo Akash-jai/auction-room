@@ -52,6 +52,35 @@ BLOCKS = [
  Sandeep Lamichhane:66, Jhye Richardson:66, Adam Milne:66, Ottniel Baartman:64, Luke Wood:62, Riley Meredith:62"""),
 ]
 
+# ---- Retired / older IPL players (played in the league at some point) ----
+BLOCKS += [
+("W", 0, """Dinesh Karthik:76, Robin Uthappa:72, Wriddhiman Saha:68, Parthiv Patel:66, Naman Ojha:62, Aditya Tare:58, Manvinder Bisla:58"""),
+("B", 0, """Sachin Tendulkar:86, Suresh Raina:84, Shikhar Dhawan:84, Virender Sehwag:84, Gautam Gambhir:80, Rahul Dravid:74,
+ Ambati Rayudu:74, Murali Vijay:72, Sourav Ganguly:72, Kedar Jadhav:66, VVS Laxman:66, Mohammad Kaif:62,
+ Saurabh Tiwary:62, Cheteshwar Pujara:58, Hanuma Vihari:58"""),
+("A", 0, """Yuvraj Singh:82, Yusuf Pathan:76, Irfan Pathan:72, Stuart Binny:62, Rishi Dhawan:62, Shreyas Gopal:62"""),
+("L", 0, """Ravichandran Ashwin:84, Zaheer Khan:80, Ashish Nehra:78, Harbhajan Singh:76, Amit Mishra:70, Munaf Patel:66,
+ Praveen Kumar:66, Varun Aaron:66, RP Singh:62, S Sreesanth:62, Dhawal Kulkarni:62, Siddharth Kaul:62,
+ Vinay Kumar:62, Pragyan Ojha:62, Pravin Tambe:60, Ashok Dinda:58"""),
+("W", 1, """AB de Villiers:92, Adam Gilchrist:88, Brendon McCullum:84, Kumar Sangakkara:82, Luke Ronchi:66, Mark Boucher:62,
+ Kamran Akmal:60"""),
+("B", 1, """Chris Gayle:88, Kevin Pietersen:82, Michael Hussey:82, Matthew Hayden:80, Chris Lynn:78, Eoin Morgan:76,
+ Mahela Jayawardene:74, Aaron Finch:74, Jason Roy:74, Ricky Ponting:72, Shaun Marsh:72, Herschelle Gibbs:72,
+ Tillakaratne Dilshan:72, Alex Hales:72, Colin Munro:72, Martin Guptill:72, Joe Root:72, Hashim Amla:70,
+ Graeme Smith:68, Lendl Simmons:68, Michael Clarke:68, Ross Taylor:66, Jesse Ryder:66, Marlon Samuels:62,
+ Misbah-ul-Haq:62, Younis Khan:58"""),
+("A", 1, """Kieron Pollard:82, Shane Watson:84, Jacques Kallis:80, Dwayne Bravo:82, Andrew Symonds:78, Chris Morris:78,
+ Shakib Al Hasan:74, Albie Morkel:72, James Faulkner:72, Shahid Afridi:70, JP Duminy:70, Corey Anderson:70,
+ Andrew Flintoff:70, Angelo Mathews:68, Dwayne Smith:66, Thisara Perera:66, Carlos Brathwaite:66, Ben Cutting:66,
+ Daniel Vettori:66, David Wiese:66, Tom Curran:66, Abdul Razzaq:62, Darren Sammy:62, Scott Styris:62,
+ Paul Collingwood:60, Ravi Bopara:60, Ryan McLaren:60, Robin Peterson:58"""),
+("L", 1, """Lasith Malinga:90, Shane Warne:86, Dale Steyn:84, Morne Morkel:78, Imran Tahir:78, Mitchell Johnson:78,
+ Brett Lee:74, Shoaib Akhtar:74, Muttiah Muralitharan:72, Nathan Coulter-Nile:72, Mitchell McClenaghan:72,
+ Glenn McGrath:68, Shaun Pollock:66, Shane Bond:66, Umar Gul:66, Sohail Tanvir:62, Shaun Tait:66, Wayne Parnell:66,
+ Dushmantha Chameera:66, Marchant de Lange:62, Liam Plunkett:62, Lonwabo Tsotsobe:60, Dirk Nannes:60,
+ Steven Finn:58, Rusty Theron:58"""),
+]
+
 
 def base(r):
     return 2.0 if r >= 88 else 1.5 if r >= 84 else 1.0 if r >= 78 else .5 if r >= 74 else .3 if r >= 68 else .2
@@ -86,3 +115,16 @@ def order(pool, mq=14):
             random.shuffle(s)
             out += s
     return out
+
+
+def pick(pool, n, mq, max_ov=.38):
+    """Top `mq` players always play; the rest is a random sample with a realistic overseas share."""
+    ps = sorted(pool, key=lambda p: -p["r"])
+    top, rest = ps[:mq], ps[mq:]
+    ov = [p for p in rest if p["o"]]
+    ind = [p for p in rest if not p["o"]]
+    want_ov = min(len(ov), max(0, round(max_ov * n) - sum(p["o"] for p in top)))
+    take_ov = want_ov
+    take_in = min(len(ind), n - mq - take_ov)
+    take_ov = min(len(ov), n - mq - take_in)
+    return top + random.sample(ind, take_in) + random.sample(ov, take_ov)

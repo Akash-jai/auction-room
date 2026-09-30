@@ -4,7 +4,7 @@ import asyncio, json, os, random, string
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 
-from players import build_pool, order
+from players import build_pool, order, pick
 
 PURSE, MAXS, MINS, MAXO = 120.0, 25, 18, 8
 TM = [("Mumbai", "#1c5fd1"), ("Chennai", "#f2b705"), ("Bengaluru", "#d3222a"), ("Kolkata", "#5b2a86"),
@@ -115,7 +115,7 @@ class Room:
         pool = sorted(build_pool(), key=lambda p: -p["r"])
         n = min(len(pool), max(70, size * 26))  # fewer teams -> shorter auction
         mq = min(30, 14 + size * 2)  # marquee set grows with the number of teams (2 -> 18, 10 -> 30)
-        s.q, s.idx, s.unsold, s.pass2, s.log = order(pool[:mq] + random.sample(pool[mq:], n - mq), mq), -1, [], False, []
+        s.q, s.idx, s.unsold, s.pass2, s.log = order(pick(pool, n, mq), mq), -1, [], False, []
         s.phase = "auction"
         s.next_lot()
 
