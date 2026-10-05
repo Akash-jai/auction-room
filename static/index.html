@@ -40,6 +40,18 @@ button.pl{display:inline-block;margin:3px;padding:6px 10px;border:2px solid var(
 button.pl.on{background:var(--acc);border-color:var(--acc);color:var(--accfg,#1a1200);font-weight:700}
 .ok{color:var(--ok);font-weight:700}.no{color:var(--bad);font-weight:700}
 details{margin:4px 0}summary{cursor:pointer}
+#vote{position:fixed;left:0;right:0;bottom:0;z-index:45;display:none;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:3px solid var(--acc);box-shadow:0 -8px 24px rgba(0,0,0,.2);animation:upin .35s cubic-bezier(.2,1.2,.4,1)}
+@keyframes upin{from{transform:translateY(100%)}}
+#vote .vh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+#vote .vt{font-weight:800;font-size:1.05rem}
+#vote .vb{display:flex;gap:8px}#vote button{padding:8px 18px}
+#vote .yes{background:#1c8a4a;border-color:#1c8a4a;color:#fff}#vote .no{background:#c0392b;border-color:#c0392b;color:#fff}
+.seg{display:flex;gap:6px;margin:8px 0}.seg i{flex:1;height:12px;border-radius:6px;background:var(--line);transition:background .3s}.seg i.y{background:#1c8a4a}.seg i.n{background:#c0392b}
+.vv{font-size:.85rem;color:var(--mut)}
+body.voting #app{padding-bottom:190px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:70;padding:10px 18px;border-radius:99px;background:#10244f;color:#fff;font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,.3);animation:toast 3.4s both}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,16px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+
 #mini{position:fixed;top:0;left:0;right:0;z-index:40;display:none;align-items:center;justify-content:space-between;gap:10px;padding:calc(6px + env(safe-area-inset-top,0px)) 64px 6px 12px;background:var(--card);border-bottom:2px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.15)}
 #mini .mi{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;min-width:0}
 #mini .mp{font-size:1.25rem;font-weight:800;color:var(--acc)}#mini .mt{font-weight:800}#mini .mt.low{color:var(--bad)}
@@ -114,7 +126,7 @@ details{margin:4px 0}summary{cursor:pointer}
 .pill.K-W{border-color:#c77d0a}.pill.K-B{border-color:#2b6fd6}.pill.K-A{border-color:#7b3fc4}.pill.K-L{border-color:#1c8a4a}
 
 </style></head>
-<body><main id="app"></main><div id="fx"></div><div id="mini"></div><button id="mute" aria-label="Toggle sound">🔊</button>
+<body><main id="app"></main><div id="fx"></div><div id="mini"></div><div id="vote"></div><button id="mute" aria-label="Toggle sound">🔊</button>
 <script>
 const $=id=>document.getElementById(id),app=$("app");
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -151,6 +163,10 @@ function showSold(cur){
 }
 function fx(prev,cur){
  FR={};
+ if(prev&&prev.phase=="auction"){
+  if(cur.vote&&!prev.vote){tone(587,.1,"triangle",.12);tone(784,.14,"triangle",.12,.11)}
+  if(prev.vote&&!cur.vote){if(cur.phase=="auction")toast("Vote failed. The auction continues.");else toast("Vote passed! The auction has ended.")}
+ }
  if(cur.phase=="end"&&prev&&prev.phase!="end"){const w=cur.tour?cur.res.find(x=>x.n==cur.tour.champion):cur.res[0];confetti([w.c,"#ffd54a","#ffffff","#ff6b6b"]);SFX.fan();return}
  if(!prev||prev.phase!="auction"||cur.phase!="auction"||!prev.lot||!cur.lot)return;
  const a=prev.lot,b=cur.lot,y=cur.you.team;
@@ -173,6 +189,21 @@ function updateMini(){
 }
 window.addEventListener("scroll",updateMini,{passive:true});
 mini.addEventListener("pointerdown",e=>{if(e.target.closest("#bid2")&&S&&S.lot&&S.lot.can)send({t:"bid"})});
+const vb=$("vote");
+function updateVote(){
+ const V=S&&S.phase=="auction"&&S.vote;
+ document.body.classList.toggle("voting",!!V);
+ if(!V){vb.style.display="none";return}
+ const pct=Math.max(0,V.tl/V.total*100),dot=(l,c)=>l.map(x=>`<b style="color:${x.c}">■</b> ${esc(x.n)}`).join(" · ")||"–";
+ const seg=Array.from({length:V.n},(_,i)=>`<i class="${i<V.yes.length?"y":i>=V.n-V.no.length?"n":""}"></i>`).join("");
+ vb.style.display="block";
+ vb.innerHTML=`<div class="vh"><div class="vt">🗳 ${esc(V.by.n)} wants to end the auction</div>
+  <div class="vb">${V.can?(V.mine?`<span class="vv">You voted <b>${V.mine}</b>. You can still change it.</span>`:"")+`<button class="yes" data-a="vote" data-v="yes">${V.mine=="yes"?"✓ ":""}Yes, end it</button><button class="no" data-a="vote" data-v="no">${V.mine=="no"?"✓ ":""}No, keep going</button>`:`<span class="vv">You are spectating.</span>`}</div></div>
+  <div class="seg">${seg}</div><div class="vv">${V.yes.length} yes · ${V.no.length} no · needs ${V.need} of ${V.n} · Yes: ${dot(V.yes)} · No: ${dot(V.no)}</div>
+  <div class="tbar" style="margin-top:8px"><i style="--from:${pct}%;animation-duration:${Math.max(0,V.tl)}s"></i></div>`;
+}
+vb.addEventListener("click",e=>{const b=e.target.closest("[data-a=vote]");if(b)send({t:"vote",v:b.dataset.v})});
+function toast(t){const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),3500)}
 function endFx(){document.querySelectorAll(".cu").forEach(el=>{const to=+el.dataset.to,t0=performance.now();
  const step=t=>{if(!el.isConnected)return;const k=Math.min(1,(t-t0)/1100);el.textContent=Math.round(to*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)})}
 function connect(c){
@@ -190,7 +221,7 @@ function render(){
  const off=S.off?'<div class="off">Connection lost. Reconnecting…</div>':"";
  accent();
  app.innerHTML=off+(S.phase=="lobby"?lobby():S.phase=="auction"?auction():S.phase=="xi"?xiView():end());
- updateMini();if(S.phase=="end")endFx();
+ updateMini();updateVote();if(S.phase=="end")endFx();
 }
 function landing(){
  app.innerHTML=`<h1>Auction Room</h1><p>A live multiplayer player auction. Bid against friends and AI franchises. Unofficial fan project; ratings are made up.</p>
@@ -226,6 +257,11 @@ function lobby(){
  <p>Unclaimed franchises are played by the AI. A 2-team duel takes roughly 20 to 40 minutes depending on the bidding speed.</p>`:"<p>Waiting for the host to start.</p>"}
  <p>Rules: ${fm(S.limits.purse)} purse, squads of ${S.limits.min} to ${S.limits.max}, at most ${S.limits.ov} overseas players.</p>`;
 }
+function voteButton(){
+ const cd=S.vote_cd||0,on=!!S.vote;
+ return `<h2>End the auction early?</h2><p class="ps">Any player can call a vote. If more than half of the players agree, the auction stops and everyone moves on to picking their XI.</p>
+ <p><button data-a="callvote" ${on||cd>0?"disabled":""}>🗳 ${on?"A vote is in progress":cd>0?"Next vote available in "+cd+"s":"Call a vote to end the auction"}</button></p>`;
+}
 function squadPanel(me){
  const sq=S.mine,cnt=k=>sq.filter(x=>x.k==k).length,W=cnt("W"),B=cnt("B"),A=cnt("A"),Lb=cnt("L"),ov=sq.filter(x=>x.o).length;
  const roles=[["Keepers",W,2],["Batters",B,6],["All-rounders",A,5],["Bowlers",Lb,8]];
@@ -258,7 +294,7 @@ function auction(){
    <div class="ps">${t.cnt}/${S.limits.max} players · ${t.ov}/${S.limits.ov} overseas · WK ${t.W} · BAT ${t.B} · AR ${t.A} · BOWL ${t.L}</div></div>`).join("")}
  </div><div>${me?squadPanel(me):""}</div></div>
  <h2>Sales</h2><div class="log">${S.log.map(l=>`<div>${esc(l)}</div>`).join("")}</div>
- ${y.host?`<p><button data-a="endnow">End auction now</button></p>`:""}`;
+ ${me?voteButton():""}`;
 }
 function xiInfo(sel,sq){
  const by={};sq.forEach(x=>by[x.n]=x);const xi=sel.map(n=>by[n]).filter(Boolean);
@@ -337,7 +373,8 @@ app.addEventListener("click",e=>{
   if(c.trim())connect(c);
  }else if(a=="pick")send({t:"pick",i:+b.dataset.i});
  else if(a=="start"){SZ=+$("sz").value;send({t:"start",size:SZ})}
- else if(a=="endnow"){if(confirm("End the auction for everyone now?"))send({t:"end"})}
+ else if(a=="callvote"){if(confirm("Ask everyone to vote on ending the auction now?"))send({t:"callvote"})}
+ else if(a=="vote")send({t:"vote",v:b.dataset.v})
  else if(a=="lobby")send({t:"lobby"});
  else if(a=="nocustom")send({t:"nocustom"});
  else if(a=="mode"||a=="speed")send({t:"opts",[a]:b.dataset.v});

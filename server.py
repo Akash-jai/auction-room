@@ -91,6 +91,7 @@ class Room:
         s.status, s.last, s.log, s.unsold, s.pass2 = "bidding", "", [], [], False
         s.reaper = None
         s.bids = []  # bid history of the current lot, oldest first
+        s.vote, s.vote_cd = None, 0  # vote to end the auction early; cooldown (seconds) after a failed vote
         s.mode, s.speed, s.tour = "match", "normal", None  # match = one XI scores; tournament = depth wins
         s.custom = None  # host-uploaded player list: {"players": [...], "file": str, "notes": [...]}
 
@@ -159,6 +160,7 @@ class Room:
             n = min(len(pool), max(70, size * 26))  # fewer teams -> shorter auction
             mq = min(30, 14 + size * 2)  # marquee set grows with the number of teams (2 -> 18, 10 -> 30)
             q = order(pick(pool, n, mq), mq)
+        s.vote, s.vote_cd = None, 0
         s.q, s.idx, s.unsold, s.pass2, s.log = q, -1, [], False, []
         s.phase = "auction"
         s.next_lot()
@@ -188,7 +190,34 @@ class Room:
 
     def team_of(s, cid): return next((x for x in s.teams if x.owner == cid), None)
 
+    # ---------- vote to end the auction early (majority of human players) ----------
+    VOTE_SECS, VOTE_COOLDOWN = 25, 90
+
+    def voters(s): return [t.owner for t in s.teams if t.owner]
+
+    def call_vote(s, cid):
+        if s.phase != "auction" or s.vote or s.vote_cd > 0 or cid not in s.voters(): return "A vote isn't possible right now."
+        s.vote = {"by": cid, "yes": {cid}, "no": set(), "tl": s.VOTE_SECS}
+        s.log.append(f"{s.cl[cid]['name']} called a vote to end the auction")
+        s.check_vote()
+
+    def cast_vote(s, cid, yes):
+        v = s.vote
+        if not v or cid not in s.voters(): return
+        v["yes"].discard(cid); v["no"].discard(cid)
+        (v["yes"] if yes else v["no"]).add(cid)
+        s.check_vote()
+
+    def check_vote(s):
+        v, n = s.vote, len(s.voters())
+        if not v: return
+        if len(v["yes"]) * 2 > n:  # strict majority
+            s.log.append("Vote passed: auction ended"); s.vote = None; s.finish()
+        elif (n - len(v["no"])) * 2 <= n:  # yes can no longer reach a majority
+            s.log.append("Vote failed: the auction continues"); s.vote, s.vote_cd = None, s.VOTE_COOLDOWN
+
     def finish(s):  # auction over -> everyone picks a playing XI
+        s.vote = None
         s.phase = "xi"
         for t in s.teams:
             t.final = None
@@ -245,6 +274,11 @@ class Room:
 
     def tick(s):
         if s.phase != "auction": return
+        if s.vote_cd > 0: s.vote_cd -= 1
+        if s.vote:
+            s.vote["tl"] -= 1
+            if s.vote["tl"] <= 0:
+                s.log.append("Vote failed: time ran out"); s.vote, s.vote_cd = None, s.VOTE_COOLDOWN
         if s.status == "result":
             s.pause -= 1
             if s.pause <= 0: s.next_lot()
@@ -289,8 +323,11 @@ class Room:
             if s.phase == "auction": s.task = asyncio.create_task(s.run())
         elif t == "bid":
             s.bid(cid)
-        elif t == "end" and cid == s.host and s.phase == "auction":
-            s.finish()
+        elif t == "callvote" and s.phase == "auction":
+            err = s.call_vote(cid)
+            if err and c["ws"]: await c["ws"].send_text(json.dumps({"t": "err", "m": err}))
+        elif t == "vote" and s.phase == "auction":
+            s.cast_vote(cid, m.get("v") == "yes")
         elif t == "upload" and cid == s.host and s.phase == "lobby":
             try:
                 data = base64.b64decode(m.get("data") or "", validate=False)
@@ -339,6 +376,13 @@ class Room:
                         "can": bool(me and s.status == "bidding" and me is not s.lead and s.can(me, s.p, a))}
             d["mine"] = me.sq if me else []
             d["log"] = s.log[-10:][::-1]
+            d["vote_cd"] = s.vote_cd
+            if s.vote:
+                v, nm = s.vote, lambda k: {"n": s.cl[k]["name"], "c": next(t.c for t in s.teams if t.owner == k)}
+                d["vote"] = {"by": nm(v["by"]), "yes": [nm(k) for k in v["yes"]], "no": [nm(k) for k in v["no"]],
+                             "n": len(s.voters()), "need": len(s.voters()) // 2 + 1, "tl": v["tl"], "total": s.VOTE_SECS,
+                             "mine": "yes" if cid in v["yes"] else "no" if cid in v["no"] else None,
+                             "can": cid in s.voters()}
         if s.phase == "xi":
             d["mine"] = me.sq if me else []
             d["xi"] = {"sel": me.xi if me else [], "locked": bool(me and me.locked), "max_ov": MAXO_XI,
