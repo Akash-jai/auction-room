@@ -81,6 +81,25 @@ BLOCKS += [
  Steven Finn:58, Rusty Theron:58"""),
 ]
 
+# Peak-IPL-impact re-rating: legends are rated for what they did in the league at their best, not for recent form.
+RERATE = {
+ # Indian legends / veterans
+ "MS Dhoni": 93, "Virat Kohli": 94, "Rohit Sharma": 91, "Suresh Raina": 90, "Sachin Tendulkar": 88, "Virender Sehwag": 88,
+ "Shikhar Dhawan": 86, "Gautam Gambhir": 86, "Yuvraj Singh": 86, "Dinesh Karthik": 82, "Ambati Rayudu": 80,
+ "Robin Uthappa": 78, "Murali Vijay": 76, "Rahul Dravid": 76, "Sourav Ganguly": 74, "Wriddhiman Saha": 72, "Parthiv Patel": 70,
+ "Ravindra Jadeja": 90, "Ravichandran Ashwin": 88, "Harbhajan Singh": 84, "Zaheer Khan": 84, "Amit Mishra": 80,
+ "Ashish Nehra": 80, "Bhuvneshwar Kumar": 86, "Yuzvendra Chahal": 86, "Piyush Chawla": 74, "Umesh Yadav": 72,
+ "Irfan Pathan": 76, "Yusuf Pathan": 80, "Munaf Patel": 70, "Praveen Kumar": 70, "Ishant Sharma": 70,
+ # Overseas legends
+ "AB de Villiers": 95, "Chris Gayle": 94, "Lasith Malinga": 95, "Adam Gilchrist": 92, "Shane Warne": 90, "Dale Steyn": 90,
+ "Brendon McCullum": 90, "David Warner": 90, "Shane Watson": 90, "Andre Russell": 90, "Sunil Narine": 90, "Dwayne Bravo": 88,
+ "Kieron Pollard": 88, "Michael Hussey": 86, "Matthew Hayden": 86, "Kevin Pietersen": 86, "Jacques Kallis": 84,
+ "Kumar Sangakkara": 84, "Faf du Plessis": 84, "Imran Tahir": 82, "Morne Morkel": 80, "Mitchell Johnson": 80,
+ "Kane Williamson": 80, "Steve Smith": 80, "Andrew Symonds": 80, "Chris Morris": 80, "Brett Lee": 78,
+ "Muttiah Muralitharan": 76, "Shoaib Akhtar": 76, "Ricky Ponting": 76, "Shakib Al Hasan": 76, "Mahela Jayawardene": 76,
+ "Glenn McGrath": 72, "Eoin Morgan": 78, "Chris Lynn": 80, "Aaron Finch": 76, "Jason Roy": 76,
+}
+
 
 def base(r):
     return 2.0 if r >= 88 else 1.5 if r >= 84 else 1.0 if r >= 78 else .5 if r >= 74 else .3 if r >= 68 else .2
@@ -95,7 +114,7 @@ def build_pool():
             n, r = item.rsplit(":", 1)
             if n in seen: continue
             seen.add(n)
-            r = int(r)
+            r = RERATE.get(n, int(r))
             b = base(r)
             if o: b = max(b, .5)
             pool.append(dict(n=n, k=k, o=o, r=r, b=b))

@@ -6,8 +6,11 @@ from fastapi.responses import FileResponse, Response
 
 from players import build_pool, order, pick
 from custom import parse_upload
+from tourney import simulate
 
 PURSE, MAXS, MINS, MAXO, MAXO_XI = 120.0, 25, 18, 8, 4
+# bidding clock in seconds: (first clock, after a bid) for big players (base >= 1 cr) and small ones
+SPEEDS = {"quick": ((12, 8), (6, 4)), "normal": ((20, 12), (12, 8)), "relaxed": ((40, 25), (25, 15))}
 TM = [("Mumbai", "#1c5fd1"), ("Chennai", "#f2b705"), ("Bengaluru", "#d3222a"), ("Kolkata", "#5b2a86"),
       ("Delhi", "#2a7fd4"), ("Hyderabad", "#f26a1b"), ("Punjab", "#c8102e"), ("Rajasthan", "#e8388f"),
       ("Gujarat", "#1b3a57"), ("Lucknow", "#22a5b8")]
@@ -64,14 +67,19 @@ def build_xi(sq, seed=()):
     return sel
 
 
-def score(t):
+def breakdown(t):
     xi = t.final or build_xi(t.sq)
-    s = sum(p["r"] for p in xi)
-    s += 10 if sum(1 for p in xi if p["k"] in "LA") >= 5 else 0
-    s += 6 if sum(1 for p in xi if p["k"] in "BWA") >= 5 else 0
-    s += 8 if any(p["k"] == "W" for p in xi) else 0
-    s -= 100 if len(t.sq) < MINS else 0
-    return s, xi
+    base = sum(p["r"] for p in xi)
+    kb = 8 if any(p["k"] == "W" for p in xi) else 0
+    bb = 10 if sum(1 for p in xi if p["k"] in "LA") >= 5 else 0
+    tb = 6 if sum(1 for p in xi if p["k"] in "BWA") >= 5 else 0
+    pen = -100 if len(t.sq) < MINS else 0
+    return {"xi": xi, "base": base, "kb": kb, "bb": bb, "tb": tb, "pen": pen, "score": base + kb + bb + tb + pen}
+
+
+def score(t):
+    b = breakdown(t)
+    return b["score"], b["xi"]
 
 
 class Room:
@@ -83,6 +91,7 @@ class Room:
         s.status, s.last, s.log, s.unsold, s.pass2 = "bidding", "", [], [], False
         s.reaper = None
         s.bids = []  # bid history of the current lot, oldest first
+        s.mode, s.speed, s.tour = "match", "normal", None  # match = one XI scores; tournament = depth wins
         s.custom = None  # host-uploaded player list: {"players": [...], "file": str, "notes": [...]}
 
     # ---------- connections ----------
@@ -171,10 +180,11 @@ class Room:
             if not any(s.can(t, p, p["b"]) for t in s.teams):
                 s.unsold.append(p); continue
             break
+        (f1, a1), (f2, a2) = SPEEDS[s.speed]
         big = p["b"] >= 1
-        s.t1 = 8 if big else 4
+        s.t1 = a1 if big else a2
         s.p, s.cur, s.lead, s.status, s.bids = p, None, None, "bidding", []
-        s.tl, s.na = (12 if big else 6), random.randint(1, 3)
+        s.tl, s.na = (f1 if big else f2), random.randint(1, 3)
 
     def team_of(s, cid): return next((x for x in s.teams if x.owner == cid), None)
 
@@ -209,6 +219,7 @@ class Room:
     def reveal(s):
         for t in s.teams:
             t.final = build_xi(t.sq, t.xi)
+        s.tour = simulate(s.teams, build_xi, lambda t: s.cl.get(t.owner, {}).get("name")) if s.mode == "tournament" else None
         s.phase = "end"
 
     def place(s, t, a):
@@ -287,6 +298,9 @@ class Room:
                 s.custom = {"players": players, "file": str(m.get("name") or "")[:60], "notes": notes}
             except ValueError as e:
                 if c["ws"]: await c["ws"].send_text(json.dumps({"t": "err", "m": str(e)}))
+        elif t == "opts" and cid == s.host and s.phase == "lobby":
+            if m.get("mode") in ("match", "tournament"): s.mode = m["mode"]
+            if m.get("speed") in SPEEDS: s.speed = m["speed"]
         elif t == "nocustom" and cid == s.host and s.phase == "lobby":
             s.custom = None
         elif t in ("xi", "lock", "unlock", "reveal") and s.phase == "xi":
@@ -297,7 +311,7 @@ class Room:
             elif t == "reveal" and cid == s.host: s.reveal()
             if err and c["ws"]: await c["ws"].send_text(json.dumps({"t": "err", "m": err}))
         elif t == "lobby" and cid == s.host and s.phase == "end":
-            s.phase, s.teams, s.claims = "lobby", [], {}
+            s.phase, s.teams, s.claims, s.tour = "lobby", [], {}, None
         await s.broadcast()
 
     def state(s, cid):
@@ -308,7 +322,8 @@ class Room:
              "people": [{"n": c["name"], "on": bool(c["ws"]), "host": k == s.host} for k, c in s.cl.items()],
              "fr": [{"n": n, "c": c, "o": s.cl[s.claims[i]]["name"] if s.claims.get(i) in s.cl else None}
                     for i, (n, c) in enumerate(TM)],
-             "limits": {"purse": PURSE, "min": MINS, "max": MAXS, "ov": MAXO}, "custom": None}
+             "limits": {"purse": PURSE, "min": MINS, "max": MAXS, "ov": MAXO}, "custom": None,
+             "mode": s.mode, "speed": s.speed}
         if s.custom:
             ps = s.custom["players"]
             d["custom"] = {"file": s.custom["file"], "n": len(ps), "notes": s.custom["notes"], "ov": sum(p["o"] for p in ps),
@@ -333,10 +348,12 @@ class Room:
         if s.phase == "end":
             res = []
             for t in s.teams:
-                sc, xi = score(t)
-                res.append({"n": t.n, "c": t.c, "o": s.cl.get(t.owner, {}).get("name"), "score": sc,
-                            "purse": r2(t.purse), "xi": [x["n"] for x in xi], "sq": t.sq})
+                b = breakdown(t)
+                res.append({"n": t.n, "c": t.c, "i": t.i, "o": s.cl.get(t.owner, {}).get("name"), "score": b["score"],
+                            "base": b["base"], "kb": b["kb"], "bb": b["bb"], "tb": b["tb"], "pen": b["pen"],
+                            "purse": r2(t.purse), "xi": b["xi"], "sq": t.sq})
             d["res"] = sorted(res, key=lambda x: -x["score"])
+            d["tour"] = s.tour
         return d
 
     async def broadcast(s):

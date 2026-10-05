@@ -40,6 +40,39 @@ button.pl{display:inline-block;margin:3px;padding:6px 10px;border:2px solid var(
 button.pl.on{background:var(--acc);border-color:var(--acc);color:var(--accfg,#1a1200);font-weight:700}
 .ok{color:var(--ok);font-weight:700}.no{color:var(--bad);font-weight:700}
 details{margin:4px 0}summary{cursor:pointer}
+#mini{position:fixed;top:0;left:0;right:0;z-index:40;display:none;align-items:center;justify-content:space-between;gap:10px;padding:calc(6px + env(safe-area-inset-top,0px)) 64px 6px 12px;background:var(--card);border-bottom:2px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.15)}
+#mini .mi{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;min-width:0}
+#mini .mp{font-size:1.25rem;font-weight:800;color:var(--acc)}#mini .mt{font-weight:800}#mini .mt.low{color:var(--bad)}
+#mini button{padding:8px 14px;white-space:nowrap}
+.hero{border-radius:20px;padding:28px 18px 24px;text-align:center;color:#fff;background:radial-gradient(circle at 50% -20%,var(--tc) -30%,#10244f 58%,#0a1633);box-shadow:0 14px 40px rgba(16,36,79,.35);margin-bottom:18px;overflow:hidden}
+.hero .trophy{font-size:3.6rem;display:inline-block;animation:bob 2.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px) rotate(-5deg)}}
+.hero h1{color:#fff;margin:.1em 0}.hero p{color:#cfd8ee;margin:.2em 0}
+.hero .tag{display:inline-block;margin-top:10px;padding:6px 16px;border-radius:99px;background:rgba(255,255,255,.16);font-weight:700}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:18px 0 6px}
+.pod{flex:1;max-width:210px;text-align:center}.pod .pn{font-size:2.2rem}.pod small{display:block;color:var(--mut)}
+.pod .pb{margin-top:6px;border-radius:12px 12px 0 0;background:linear-gradient(180deg,var(--tc),color-mix(in srgb,var(--tc) 55%,#000));color:#fff;font-weight:800;font-size:1.4rem;padding-top:8px;transform-origin:bottom;animation:rise .9s cubic-bezier(.2,.9,.3,1) both}
+@keyframes rise{from{transform:scaleY(0)}}
+.sb{display:grid;grid-template-columns:110px 1fr 56px;gap:10px;align-items:center;margin:6px 0}
+.bar2{height:14px;border-radius:8px;background:var(--line);overflow:hidden}
+.bar2 i{display:block;height:100%;border-radius:8px;animation:grow 1.1s cubic-bezier(.2,.9,.3,1) both}
+@keyframes grow{from{width:0}}
+.tc{border:2px solid var(--line);border-left:8px solid var(--tc);border-radius:16px;background:var(--card);padding:14px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.06);animation:cardin .5s both}
+@keyframes cardin{from{opacity:0;transform:translateY(14px)}}
+.th{display:flex;align-items:center;gap:12px}.th .sc{margin-left:auto;text-align:right;font-size:1.9rem;font-weight:800;color:var(--tc);line-height:1}.th .sc small{display:block;font-size:.7rem;color:var(--mut);font-weight:600}
+.rk{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;background:var(--tc);color:#fff;font-weight:800}
+.xr{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.xk{min-width:112px;font-weight:700;font-size:.82rem;color:var(--mut)}
+.pc{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border:1px solid var(--line);border-radius:99px;font-size:.88rem}.pc b{color:var(--mut);font-weight:700}
+.pc.gold{background:linear-gradient(135deg,#ffe58a,#f5b400);border-color:#d89a00;color:#3a2a00}.pc.gold b{color:#5a4200}
+.pc.silver{background:linear-gradient(135deg,#f1f3f7,#cfd6e2);border-color:#aab3c5;color:#1d2433}.pc.silver b{color:#3a4358}
+.bn{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.bn span{padding:3px 10px;border-radius:99px;background:rgba(127,127,127,.15);font-size:.82rem;font-weight:600}
+.you{background:var(--acc);color:var(--accfg,#1a1200);border-radius:6px;padding:1px 6px;font-size:.7rem;font-weight:800;vertical-align:middle}
+.tt{border-collapse:collapse;width:100%}.tt th,.tt td{padding:8px 8px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}.tt th:nth-child(2),.tt td:nth-child(2){text-align:left}
+.tt tr.ch{background:rgba(245,180,0,.2)}
+.po{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.pm{border:2px solid var(--line);border-radius:12px;padding:10px;background:var(--card)}.pm small{color:var(--mut)}
+.gm{display:inline-block;margin:3px;padding:3px 9px;border-radius:99px;font-size:.8rem;font-weight:700;color:#fff}
+
 .lot{position:relative;transition:border-color .3s}
 .lot.flash{animation:flash .55s ease-out}
 @keyframes flash{0%{box-shadow:0 0 0 0 var(--acc)}100%{box-shadow:0 0 0 20px transparent}}
@@ -81,7 +114,7 @@ details{margin:4px 0}summary{cursor:pointer}
 .pill.K-W{border-color:#c77d0a}.pill.K-B{border-color:#2b6fd6}.pill.K-A{border-color:#7b3fc4}.pill.K-L{border-color:#1c8a4a}
 
 </style></head>
-<body><main id="app"></main><div id="fx"></div><button id="mute" aria-label="Toggle sound">🔊</button>
+<body><main id="app"></main><div id="fx"></div><div id="mini"></div><button id="mute" aria-label="Toggle sound">🔊</button>
 <script>
 const $=id=>document.getElementById(id),app=$("app");
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -118,6 +151,7 @@ function showSold(cur){
 }
 function fx(prev,cur){
  FR={};
+ if(cur.phase=="end"&&prev&&prev.phase!="end"){const w=cur.tour?cur.res.find(x=>x.n==cur.tour.champion):cur.res[0];confetti([w.c,"#ffd54a","#ffffff","#ff6b6b"]);SFX.fan();return}
  if(!prev||prev.phase!="auction"||cur.phase!="auction"||!prev.lot||!cur.lot)return;
  const a=prev.lot,b=cur.lot,y=cur.you.team;
  if(a.i!=b.i){clk={lot:b.i,total:Math.max(1,b.tl),prev:b.tl};return}
@@ -129,6 +163,18 @@ function fx(prev,cur){
 const mb=$("mute");mb.textContent=MUTED?"🔇":"🔊";
 mb.addEventListener("click",()=>{MUTED=!MUTED;localStorage.setItem("asnd",MUTED?"0":"1");mb.textContent=MUTED?"🔇":"🔊";if(!MUTED){ac();SFX.bid()}});
 document.addEventListener("pointerdown",()=>ac());
+const mini=$("mini");
+function updateMini(){
+ const lot=document.querySelector(".lot");
+ if(!S||S.phase!="auction"||!S.lot||!lot||lot.getBoundingClientRect().bottom>0){mini.style.display="none";return}
+ const L=S.lot,T=S.teams,lead=T.find(t=>t.i==L.lead),me=T.find(t=>t.i==S.you.team),res=L.st=="result";
+ mini.style.display="flex";
+ mini.innerHTML=`<div class="mi"><b>${esc(L.p.n)}</b><span class="mp">${fm(L.cur??L.p.b)}</span><span>${lead?esc(lead.n):"no bids yet"}</span><span class="mt ${L.tl<=2?"low":""}">${Math.max(0,L.tl)}s</span></div>${me?`<button class="go" id="bid2" style="background:${me.c};border-color:${me.c};color:${fg(me.c)}" ${L.can?"":"disabled"}>${res?"…":me.i==L.lead?"You lead":"Bid "+fm(L.nb)}</button>`:""}`;
+}
+window.addEventListener("scroll",updateMini,{passive:true});
+mini.addEventListener("pointerdown",e=>{if(e.target.closest("#bid2")&&S&&S.lot&&S.lot.can)send({t:"bid"})});
+function endFx(){document.querySelectorAll(".cu").forEach(el=>{const to=+el.dataset.to,t0=performance.now();
+ const step=t=>{if(!el.isConnected)return;const k=Math.min(1,(t-t0)/1100);el.textContent=Math.round(to*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)})}
 function connect(c){
  code=c.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);history.replaceState(null,"","?room="+code);S=null;render();open();
 }
@@ -144,6 +190,7 @@ function render(){
  const off=S.off?'<div class="off">Connection lost. Reconnecting…</div>':"";
  accent();
  app.innerHTML=off+(S.phase=="lobby"?lobby():S.phase=="auction"?auction():S.phase=="xi"?xiView():end());
+ updateMini();if(S.phase=="end")endFx();
 }
 function landing(){
  app.innerHTML=`<h1>Auction Room</h1><p>A live multiplayer player auction. Bid against friends and AI franchises. Unofficial fan project; ratings are made up.</p>
@@ -151,6 +198,14 @@ function landing(){
  <h2>${rq?"Join room "+esc(rq):"Start or join"}</h2>
  <div class="row">${rq?`<button class="go" data-a="join" data-c="${esc(rq)}">Join room ${esc(rq)}</button>`:
  `<button class="go" data-a="create">Create a room</button><input id="rc" maxlength="8" placeholder="Room code" size="10"><button data-a="join">Join</button>`}</div>`;
+}
+function optsBox(host){
+ const M=S.mode,V=S.speed;
+ const modes=[["match","🏏 Match","One playing XI. Highest score wins."],["tournament","🏆 Tournament","Whole squad plays a league and playoffs. Depth wins."]];
+ const sp=[["quick","Quick","6 to 12 s per bid"],["normal","Normal","12 to 20 s"],["relaxed","Relaxed","25 to 40 s"]];
+ if(!host)return `<h2>Game settings</h2><p>Mode: <b>${M=="match"?"Match":"Tournament"}</b> · Bidding speed: <b>${V}</b></p>`;
+ return `<h2>Game mode</h2><div class="grid">${modes.map(([k,n,d])=>`<button class="team ${M==k?"me":""}" data-a="mode" data-v="${k}"><b>${n}</b><small>${d}</small></button>`).join("")}</div>
+ <h2>Bidding speed</h2><div class="grid">${sp.map(([k,n,d])=>`<button class="team ${V==k?"me":""}" data-a="speed" data-v="${k}"><b>${n}</b><small>${d}</small></button>`).join("")}</div>`;
 }
 function customBox(host){
  const c=S.custom;
@@ -165,9 +220,10 @@ function lobby(){
  <p>Share this link with friends:</p><div class="row"><input id="lk" readonly value="${esc(link)}" size="34"><button data-a="copy">Copy</button></div>
  <h2>Players here</h2><div>${S.people.map(p=>`<span class="pill">${esc(p.n)}${p.host?" (host)":""}${p.on?"":" · away"}</span>`).join("")}</div>
  <h2>Pick your franchise</h2><div class="grid">${S.fr.map((f,i)=>`<button class="team ${y.claim==i?"me":f.o?"taken":""}" data-a="pick" data-i="${i}"><i style="background:${f.c}"></i>${f.n}<small>${y.claim==i?"You":f.o?esc(f.o):"AI unless claimed"}</small></button>`).join("")}</div>
+ ${optsBox(y.host)}
  ${customBox(y.host)}
  ${y.host?`<h2>Start</h2><div class="row"><label>Teams in the auction <select id="sz">${[2,3,4,5,6,7,8,9,10].map(n=>`<option ${n==SZ?"selected":""}>${n}</option>`).join("")}</select></label><button class="go" data-a="start">Start auction</button></div>
- <p>Unclaimed franchises are played by the AI. 2 teams is a duel (about 20 min); 10 teams is the full auction (about 90 min).</p>`:"<p>Waiting for the host to start.</p>"}
+ <p>Unclaimed franchises are played by the AI. A 2-team duel takes roughly 20 to 40 minutes depending on the bidding speed.</p>`:"<p>Waiting for the host to start.</p>"}
  <p>Rules: ${fm(S.limits.purse)} purse, squads of ${S.limits.min} to ${S.limits.max}, at most ${S.limits.ov} overseas players.</p>`;
 }
 function squadPanel(me){
@@ -229,11 +285,42 @@ function xiView(){
  <div class="row" style="margin-top:10px">${lk?`<button data-a="unlock">Edit XI</button><span class="ok">Locked ✓ waiting for others</span>`:`<button class="go" data-a="lock" ${ready?"":"disabled"}>Lock my XI</button>`}</div>
  ${grp("W")}${grp("B")}${grp("A")}${grp("L")}${wait}${host}`;
 }
+const MEDAL=["🥇","🥈","🥉"];
+function xiCard(x,rank){
+ const g=k=>x.xi.filter(p=>p.k==k).sort((a,b)=>b.r-a.r);
+ const row=(k,ic)=>{const l=g(k);return l.length?`<div class="xr"><span class="xk">${ic} ${RL[k]}s</span>${l.map(p=>`<span class="pc ${p.r>=90?"gold":p.r>=80?"silver":""}">${esc(p.n)}${p.o?" ✈":""}<b>${p.r}</b></span>`).join("")}</div>`:""};
+ const bonus=[x.kb?"🧤 Keeper +"+x.kb:"",x.bb?"🎯 Bowling attack +"+x.bb:"",x.tb?"🏏 Batting depth +"+x.tb:"",x.pen?"⚠ Small squad "+x.pen:""].filter(Boolean);
+ return `<div class="tc" style="--tc:${x.c};animation-delay:${rank*.12}s"><div class="th"><span class="rk">${rank}</span><div><b>${esc(x.n)}</b>${x.o?` <small>(${esc(x.o)})</small>`:""}${S.you.team==x.i?` <span class="you">YOU</span>`:""}</div><div class="sc"><b class="cu" data-to="${x.score}">0</b><small>match score</small></div></div>
+ ${row("W","🧤")}${row("B","🏏")}${row("A","⚡")}${row("L","🎯")}
+ <div class="bn"><span>XI rating ${x.base}</span>${bonus.map(b=>`<span>${b}</span>`).join("")}</div>
+ <div class="ps">Purse left ${fm(x.purse)} · Squad of ${x.sq.length}</div>
+ <details><summary>Full squad</summary>${x.sq.map(p=>`<span class="pill">${esc(p.n)}${p.o?" ✈":""} · ${p.r} · ${fm(p.paid)}</span>`).join(" ")}</details></div>`;
+}
+function podium(l){ // l = [{n,c,o,v}] in rank order
+ const hts=[150,112,84],ord=[1,0,2].filter(i=>l[i]);
+ return `<div class="podium">${ord.map(i=>`<div class="pod" style="--tc:${l[i].c}"><div class="pn">${MEDAL[i]}</div><b>${esc(l[i].n)}</b><small>${esc(l[i].o||"AI")}</small><div class="pb" style="height:${hts[i]}px;animation-delay:${.25*(2-i)}s">${l[i].v}</div></div>`).join("")}</div>`;
+}
+function hero(c,title,sub,tag){return `<div class="hero" style="--tc:${c}"><div class="trophy">🏆</div><h1>${title}</h1><p>${sub}</p>${tag?`<div class="tag">${tag}</div>`:""}</div>`}
 function end(){
- const r=S.res;
- return `<h1>${esc(r[0].n)} win the auction</h1><p>Score = total rating of each team's playing XI (max 4 overseas), plus bonuses: keeper +8, bowling attack of 5+ bowlers or all-rounders +10, batting depth of 5+ batters, keepers or all-rounders +6. Squads under ${S.limits.min} are penalised.</p>
- <div class="tw"><table><tr><th>#</th><th>Franchise</th><th>Score</th><th>Purse left</th><th>Squad</th></tr>${r.map((x,i)=>`<tr><td>${i+1}</td><td><b style="color:${x.c}">■</b> ${x.n}${x.o?" ("+esc(x.o)+")":""}</td><td>${x.score}</td><td>${fm(x.purse)}</td><td><details><summary>${x.sq.length} players · XI: ${esc(x.xi.join(", "))}</summary>${x.sq.map(p=>esc(p.n)+" "+fm(p.paid)).join(" · ")}</details></td></tr>`).join("")}</table></div>
- ${S.you.host?`<p><button class="go" data-a="lobby">Back to lobby</button></p>`:""}`;
+ const R=S.res,T=S.tour,y=S.you.team,host=S.you.host?`<p><button class="go" data-a="lobby">Back to lobby</button></p>`:"";
+ const place=n=>n==1?"1st":n==2?"2nd":n==3?"3rd":n+"th";
+ if(T){
+  const by={};R.forEach(x=>by[x.n]=x);const ord=T.order.map(n=>by[n]),ch=ord[0],mine=ord.findIndex(x=>x.i==y)+1;
+  const series=T.format.startsWith("Best");
+  const sc=series?T.playoffs.reduce((a,g)=>(a[g.w]=(a[g.w]||0)+1,a),{}):null;
+  return hero(ch.c,esc(ch.n)+" are the champions!",series?`Won the series ${sc[ch.n]||0} to ${sc[T.runner]||0} against ${esc(T.runner)}`:`${esc(T.format)}. Runner-up: ${esc(T.runner)}`,mine?(mine==1?"🎉 That's your team. Congratulations!":"Your team finished "+place(mine)):"")
+  +podium(ord.slice(0,3).map((x,i)=>({n:x.n,c:x.c,o:x.o,v:place(i+1)})))
+  +`<h2>${series?"The series":"Playoffs"}</h2><div class="po">${T.playoffs.map(g=>`<div class="pm"><small>${esc(g.round)}</small><div><b style="color:${g.ac}">${esc(g.a)}</b> v <b style="color:${g.bc}">${esc(g.b)}</b></div><div>🏆 <b>${esc(g.w)}</b></div></div>`).join("")}</div>
+  <h2>${series?"Series":"League"} table</h2><div class="tw"><table class="tt"><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>Pts</th><th>XI</th><th>Depth loss</th><th>Hit by injuries</th></tr>${T.table.map((x,i)=>`<tr class="${x.n==ch.n?"ch":""}"><td>${i+1}</td><td><b style="color:${x.c}">■</b> ${esc(x.n)}${x.o?" ("+esc(x.o)+")":""}</td><td>${x.p}</td><td>${x.w}</td><td>${x.l}</td><td><b>${x.pts}</b></td><td>${x.full}</td><td>−${x.depth}</td><td>${x.inj}</td></tr>`).join("")}</table></div>
+  <p class="ps">Every match, players can be injured or rested and the next-best bench players step in. <b>Depth loss</b> is how much weaker the XI was on average after that, so smaller means a deeper squad. <b>Hit by injuries</b> is the number of matches that lost at least one of your chosen XI.</p>
+  <h2>Squads</h2>${ord.map((x,i)=>xiCard(x,i+1)).join("")}${host}`;
+ }
+ const w=R[0],mine=R.findIndex(x=>x.i==y)+1,lo=R[R.length-1].score-30,hi=w.score;
+ return hero(w.c,esc(w.n)+" win the auction!",R[1]?`${w.score} points, ${w.score-R[1].score} ahead of ${esc(R[1].n)}`:`${w.score} points`,mine?(mine==1?"🎉 That's your team. Congratulations!":"Your team finished "+place(mine)):"")
+ +podium(R.slice(0,3).map(x=>({n:x.n,c:x.c,o:x.o,v:x.score})))
+ +`<h2>Scores</h2>${R.map(x=>`<div class="sb"><b style="color:${x.c}">${esc(x.n)}</b><div class="bar2"><i style="width:${Math.max(6,(x.score-lo)/Math.max(1,hi-lo)*100)}%;background:${x.c}"></i></div><b>${x.score}</b></div>`).join("")}
+ <p class="ps">Score = total rating of the playing XI (max 4 overseas) plus bonuses: keeper +8, bowling attack of 5+ bowlers or all-rounders +10, batting depth of 5+ batters, keepers or all-rounders +6. Squads under ${S.limits.min} lose 100.</p>
+ <h2>Playing XIs</h2>${R.map((x,i)=>xiCard(x,i+1)).join("")}${host}`;
 }
 app.addEventListener("pointerdown",e=>{if(e.target.closest("#bid")&&S&&S.lot&&S.lot.can)send({t:"bid"})});
 app.addEventListener("change",e=>{
@@ -253,6 +340,7 @@ app.addEventListener("click",e=>{
  else if(a=="endnow"){if(confirm("End the auction for everyone now?"))send({t:"end"})}
  else if(a=="lobby")send({t:"lobby"});
  else if(a=="nocustom")send({t:"nocustom"});
+ else if(a=="mode"||a=="speed")send({t:"opts",[a]:b.dataset.v});
  else if(a=="tog"){
   if(!S.xi||S.xi.locked)return;const by={};S.mine.forEach(x=>by[x.n]=x);const n=b.dataset.n;let sel=[...S.xi.sel];
   if(sel.includes(n))sel=sel.filter(x=>x!=n);
