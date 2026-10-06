@@ -165,10 +165,15 @@ class Room:
         s.phase = "auction"
         s.next_lot()
 
+    def done(s, t):
+        """A team is finished when its squad is full, it is an AI at its target size, or it can't legally afford anyone left."""
+        if len(t.sq) >= MAXS or (s.auto(t) and len(t.sq) >= t.target): return True
+        return not any(s.can(t, x, x["b"]) for x in s.q[s.idx:])
+
     def next_lot(s):
         while True:
             s.idx += 1
-            if all(len(t.sq) >= MAXS or (s.auto(t) and len(t.sq) >= t.target) for t in s.teams): return s.finish()
+            if all(s.done(t) for t in s.teams): return s.finish()
             if s.idx >= len(s.q):
                 if not s.pass2 and s.unsold and any(len(t.sq) < MINS for t in s.teams):
                     s.pass2 = True
