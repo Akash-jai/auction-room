@@ -101,13 +101,13 @@ class Room:
             s.cl[cid]["ws"] = ws
             if name: s.cl[cid]["name"] = name
         else:
-            s.cl[cid] = {"name": (name or "Guest")[:16], "ws": ws}
+            s.cl[cid] = {"name": (name or "Guest")[:16], "ws": ws, "pid": "".join(random.choices(string.ascii_lowercase, k=8)), "voice": False}
         if s.host is None or not s.cl.get(s.host, {}).get("ws"): s.host = cid
 
     def detach(s, cid, ws):
         c = s.cl.get(cid)
         if c and c["ws"] is ws:
-            c["ws"] = None
+            c["ws"], c["voice"] = None, False
             if s.host == cid:
                 live = [k for k, v in s.cl.items() if v["ws"]]
                 if live: s.host = live[0]
@@ -323,6 +323,15 @@ class Room:
             if s.phase == "auction": s.task = asyncio.create_task(s.run())
         elif t == "bid":
             s.bid(cid)
+        elif t == "vjoin": c["voice"] = True
+        elif t == "vleave": c["voice"] = False
+        elif t == "rtc":  # voice chat signalling: relay to one peer by its public id (never reveals client ids)
+            d = m.get("d")
+            tgt = next((v for v in s.cl.values() if v["pid"] == m.get("to")), None)
+            if c["voice"] and tgt and tgt["voice"] and tgt["ws"] and isinstance(d, dict) and len(json.dumps(d)) < 20000:
+                try: await tgt["ws"].send_text(json.dumps({"t": "rtc", "from": c["pid"], "d": d}))
+                except Exception: tgt["ws"] = None
+            return  # no state broadcast needed
         elif t == "callvote" and s.phase == "auction":
             err = s.call_vote(cid)
             if err and c["ws"]: await c["ws"].send_text(json.dumps({"t": "err", "m": err}))
@@ -354,9 +363,10 @@ class Room:
     def state(s, cid):
         me = next((t for t in s.teams if t.owner == cid), None)
         d = {"t": "state", "code": s.code, "phase": s.phase,
-             "you": {"host": cid == s.host, "team": me.i if me else None,
+             "you": {"host": cid == s.host, "pid": s.cl[cid]["pid"], "team": me.i if me else None,
                      "claim": next((i for i, o in s.claims.items() if o == cid), None)},
-             "people": [{"n": c["name"], "on": bool(c["ws"]), "host": k == s.host} for k, c in s.cl.items()],
+             "people": [{"n": c["name"], "on": bool(c["ws"]), "host": k == s.host, "pid": c["pid"], "voice": c["voice"]}
+                        for k, c in s.cl.items()],
              "fr": [{"n": n, "c": c, "o": s.cl[s.claims[i]]["name"] if s.claims.get(i) in s.cl else None}
                     for i, (n, c) in enumerate(TM)],
              "limits": {"purse": PURSE, "min": MINS, "max": MAXS, "ov": MAXO}, "custom": None,
@@ -409,6 +419,16 @@ class Room:
 
 app = FastAPI()
 rooms = {}
+
+
+@app.get("/ice")
+def ice():
+    """STUN servers for voice chat. Set TURN_URL, TURN_USER and TURN_PASS on the host to add a relay for strict networks."""
+    servers = [{"urls": "stun:stun.l.google.com:19302"}, {"urls": "stun:stun1.l.google.com:19302"}]
+    if os.environ.get("TURN_URL"):
+        servers.append({"urls": [u.strip() for u in os.environ["TURN_URL"].split(",")],
+                        "username": os.environ.get("TURN_USER", ""), "credential": os.environ.get("TURN_PASS", "")})
+    return {"iceServers": servers}
 
 
 @app.get("/template.xlsx")

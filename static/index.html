@@ -40,6 +40,16 @@ button.pl{display:inline-block;margin:3px;padding:6px 10px;border:2px solid var(
 button.pl.on{background:var(--acc);border-color:var(--acc);color:var(--accfg,#1a1200);font-weight:700}
 .ok{color:var(--ok);font-weight:700}.no{color:var(--bad);font-weight:700}
 details{margin:4px 0}summary{cursor:pointer}
+#vc{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:62px;z-index:61}
+.vcb{border-radius:99px;padding:5px 12px;background:var(--card);border-color:var(--line);font-size:.9rem}
+.vcb.live{border-color:#1c8a4a;box-shadow:0 0 0 2px rgba(28,138,74,.25)}
+.vcp{position:absolute;top:44px;right:0;width:min(320px,86vw);background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.vr{display:flex;align-items:center;gap:8px;margin:6px 0}.vr input{flex:1;min-width:60px}
+.vd{width:14px;height:14px;border-radius:50%;background:var(--line);flex:none;transition:all .15s}
+.vd.talk{background:#1c8a4a;box-shadow:0 0 0 4px rgba(28,138,74,.35)}
+.pill.talk{box-shadow:0 0 0 3px rgba(28,138,74,.5);border-color:#1c8a4a}
+.ptb{width:100%;margin-top:8px;padding:14px}.ptb.on{background:#c0392b;border-color:#c0392b;color:#fff}
+
 #vote{position:fixed;left:0;right:0;bottom:0;z-index:45;display:none;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:3px solid var(--acc);box-shadow:0 -8px 24px rgba(0,0,0,.2);animation:upin .35s cubic-bezier(.2,1.2,.4,1)}
 @keyframes upin{from{transform:translateY(100%)}}
 #vote .vh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
@@ -52,7 +62,7 @@ body.voting #app{padding-bottom:190px}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:70;padding:10px 18px;border-radius:99px;background:#10244f;color:#fff;font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,.3);animation:toast 3.4s both}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,16px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
 
-#mini{position:fixed;top:0;left:0;right:0;z-index:40;display:none;align-items:center;justify-content:space-between;gap:10px;padding:calc(6px + env(safe-area-inset-top,0px)) 64px 6px 12px;background:var(--card);border-bottom:2px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.15)}
+#mini{position:fixed;top:0;left:0;right:0;z-index:40;display:none;align-items:center;justify-content:space-between;gap:10px;padding:calc(6px + env(safe-area-inset-top,0px)) 175px 6px 12px;background:var(--card);border-bottom:2px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.15)}
 #mini .mi{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;min-width:0}
 #mini .mp{font-size:1.25rem;font-weight:800;color:var(--acc)}#mini .mt{font-weight:800}#mini .mt.low{color:var(--bad)}
 #mini button{padding:8px 14px;white-space:nowrap}
@@ -126,7 +136,7 @@ body.voting #app{padding-bottom:190px}
 .pill.K-W{border-color:#c77d0a}.pill.K-B{border-color:#2b6fd6}.pill.K-A{border-color:#7b3fc4}.pill.K-L{border-color:#1c8a4a}
 
 </style></head>
-<body><main id="app"></main><div id="fx"></div><div id="mini"></div><div id="vote"></div><button id="mute" aria-label="Toggle sound">🔊</button>
+<body><main id="app"></main><div id="fx"></div><div id="mini"></div><div id="vote"></div><div id="vc"></div><div id="voice" style="display:none"></div><button id="mute" aria-label="Toggle sound">🔊</button>
 <script>
 const $=id=>document.getElementById(id),app=$("app");
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -204,6 +214,78 @@ function updateVote(){
 }
 vb.addEventListener("click",e=>{const b=e.target.closest("[data-a=vote]");if(b)send({t:"vote",v:b.dataset.v})});
 function toast(t){const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),3500)}
+
+// ---------- voice chat (WebRTC mesh; the game socket only relays the handshake) ----------
+const VC={on:false,open:false,stream:null,pcs:{},aud:{},an:{},speak:{},vol:{},ice:[],muted:false,ptt:false,talking:false,sig:"",ctx:null};
+function applyMic(){const t=VC.stream&&VC.stream.getAudioTracks()[0];if(t)t.enabled=VC.ptt?VC.talking:!VC.muted}
+function paintSpeak(){document.querySelectorAll("[data-vp]").forEach(el=>el.classList.toggle("talk",!!VC.speak[el.dataset.vp]))}
+function watch(pid,stream){try{VC.ctx=VC.ctx||new(window.AudioContext||window.webkitAudioContext)();const an=VC.ctx.createAnalyser();an.fftSize=512;
+ VC.ctx.createMediaStreamSource(stream).connect(an);VC.an[pid]={an,buf:new Uint8Array(an.fftSize)}}catch(e){}}
+setInterval(()=>{let ch=false;for(const pid in VC.an){const {an,buf}=VC.an[pid];an.getByteTimeDomainData(buf);let s=0;for(const v of buf)s+=((v-128)/128)**2;
+ const on=Math.sqrt(s/buf.length)>.025;if(on!=!!VC.speak[pid]){VC.speak[pid]=on;ch=true}}if(ch)paintSpeak()},150);
+function mkPc(pid,init){
+ const pc=new RTCPeerConnection({iceServers:VC.ice});pc._t=Date.now();pc._q=[];VC.pcs[pid]=pc;
+ VC.stream.getTracks().forEach(t=>pc.addTrack(t,VC.stream));
+ pc.onicecandidate=e=>{if(e.candidate)send({t:"rtc",to:pid,d:{ice:e.candidate}})};
+ pc.ontrack=e=>{const st=e.streams[0];if(!st)return;let a=VC.aud[pid];if(!a){a=document.createElement("audio");a.autoplay=true;VC.aud[pid]=a;$("voice").appendChild(a)}
+  a.srcObject=st;a.volume=VC.vol[pid]??1;if(a.play)a.play().catch(()=>{});watch(pid,st)};
+ pc.onconnectionstatechange=()=>{if(pc.connectionState=="failed"&&VC.pcs[pid]===pc){closePc(pid);setTimeout(vSync,600)}};
+ if(init)pc.onnegotiationneeded=async()=>{if(pc._neg)return;pc._neg=1;try{const o=await pc.createOffer();await pc.setLocalDescription(o);send({t:"rtc",to:pid,d:{sdp:pc.localDescription}})}catch(e){}pc._neg=0};
+ return pc;
+}
+function closePc(pid){const pc=VC.pcs[pid];if(pc){pc.onconnectionstatechange=null;try{pc.close()}catch(e){}}delete VC.pcs[pid];
+ const a=VC.aud[pid];if(a){a.srcObject=null;a.remove&&a.remove()}delete VC.aud[pid];delete VC.an[pid];VC.speak[pid]=false}
+async function onRtc(from,d){
+ if(!VC.on||!d)return;let pc=VC.pcs[from];if(!pc)pc=mkPc(from,false);
+ try{
+  if(d.sdp){await pc.setRemoteDescription(d.sdp);while(pc._q.length)await pc.addIceCandidate(pc._q.shift());
+   if(d.sdp.type=="offer"){const a=await pc.createAnswer();await pc.setLocalDescription(a);send({t:"rtc",to:from,d:{sdp:pc.localDescription}})}}
+  else if(d.ice){if(pc.remoteDescription)await pc.addIceCandidate(d.ice);else pc._q.push(d.ice)}
+ }catch(e){}
+}
+function vSync(){
+ if(!S||!S.people)return;
+ if(VC.on){
+  const me=S.people.find(p=>p.pid==S.you.pid);if(me&&!me.voice)send({t:"vjoin"});
+  const want=new Set(S.people.filter(p=>p.voice&&p.pid!=S.you.pid).map(p=>p.pid));
+  want.forEach(pid=>{if(!VC.pcs[pid])mkPc(pid,S.you.pid<pid)});  // the peer with the smaller id makes the offer
+  Object.keys(VC.pcs).forEach(pid=>{if(!want.has(pid)&&Date.now()-VC.pcs[pid]._t>4000)closePc(pid)});
+ }
+ vcRefresh();
+}
+async function vJoin(){
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.RTCPeerConnection){toast("Voice chat isn't supported in this browser");return}
+ try{VC.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}
+ catch(e){toast("Microphone blocked. Allow it in the address bar and try again.");return}
+ try{VC.ice=(await(await fetch("/ice")).json()).iceServers}catch(e){VC.ice=[{urls:"stun:stun.l.google.com:19302"}]}
+ const u=localStorage.getItem("vptt");VC.ptt=u===null?S.people.length>=7:u=="1";VC.muted=false;VC.talking=false;VC.on=true;
+ applyMic();watch(S.you.pid,VC.stream);send({t:"vjoin"});vcRefresh(true);
+}
+function vLeave(){Object.keys(VC.pcs).forEach(closePc);if(VC.stream)VC.stream.getTracks().forEach(t=>t.stop());VC.stream=null;delete VC.an[S.you.pid];VC.speak={};VC.on=false;VC.talking=false;send({t:"vleave"});vcRefresh(true)}
+function setTalk(on){if(VC.talking==on)return;VC.talking=on;applyMic();const b=$("ptb");if(b)b.classList.toggle("on",on)}
+function vcRefresh(force){
+ if(!S||!S.people){return}
+ const peers=S.people.filter(p=>p.voice),sig=JSON.stringify([VC.on,VC.open,VC.muted,VC.ptt,peers.map(p=>[p.pid,p.n])]);
+ if(!force&&sig==VC.sig)return;VC.sig=sig;const me=S.you.pid,n=peers.length;
+ let h=`<button class="vcb ${VC.on?"live":""}" data-v="toggle">🎙 ${VC.on?"Live · "+n:"Voice"+(n?" · "+n:"")}</button>`;
+ if(VC.open){h+=`<div class="vcp">`;
+  if(!VC.on)h+=`<b>Voice chat</b><p class="ps">Talk to everyone in the room. Use headphones to avoid echo.${n?` ${n} ${n==1?"person is":"people are"} on voice now.`:""}</p><button class="go" data-v="join">Join voice</button>`;
+  else h+=peers.map(p=>`<div class="vr"><span class="vd" data-vp="${p.pid}"></span><span>${esc(p.n)}${p.pid==me?" (you)":""}</span>${p.pid!=me?`<input type="range" min="0" max="100" value="${Math.round((VC.vol[p.pid]??1)*100)}" data-v="vol" data-p="${p.pid}" title="Volume">`:""}</div>`).join("")
+   +`<div class="row" style="margin-top:8px">${VC.ptt?"":`<button data-v="mute">${VC.muted?"🔇 Unmute":"🎙 Mute"}</button>`}<button data-v="ptt">${VC.ptt?"Push-to-talk: ON":"Open mic"}</button><button data-v="leave">Leave</button></div>`
+   +(VC.ptt?`<button class="go ptb" id="ptb">Hold to talk (or hold Space)</button>`:"")+`<p class="ps">Use headphones to avoid echo.</p>`;
+  h+=`</div>`}
+ $("vc").innerHTML=h;paintSpeak();
+}
+$("vc").addEventListener("click",e=>{const b=e.target.closest("[data-v]");if(!b)return;const v=b.dataset.v;
+ if(v=="toggle"){VC.open=!VC.open;vcRefresh(true)}else if(v=="join")vJoin();else if(v=="leave")vLeave();
+ else if(v=="mute"){VC.muted=!VC.muted;applyMic();vcRefresh(true)}
+ else if(v=="ptt"){VC.ptt=!VC.ptt;localStorage.setItem("vptt",VC.ptt?"1":"0");VC.talking=false;applyMic();vcRefresh(true)}});
+$("vc").addEventListener("input",e=>{if(e.target.dataset.v!="vol")return;const p=e.target.dataset.p,x=e.target.value/100;VC.vol[p]=x;if(VC.aud[p])VC.aud[p].volume=x});
+$("vc").addEventListener("pointerdown",e=>{if(e.target.closest("#ptb"))setTalk(true)});
+["pointerup","pointerleave","pointercancel"].forEach(ev=>$("vc").addEventListener(ev,e=>{if(e.target.closest&&e.target.closest("#ptb"))setTalk(false)}));
+document.addEventListener("keydown",e=>{if(e.code=="Space"&&VC.on&&VC.ptt&&!e.repeat&&!/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)){e.preventDefault();setTalk(true)}});
+document.addEventListener("keyup",e=>{if(e.code=="Space"&&VC.on&&VC.ptt){e.preventDefault();setTalk(false)}});
+window.addEventListener("blur",()=>setTalk(false));
 function endFx(){document.querySelectorAll(".cu").forEach(el=>{const to=+el.dataset.to,t0=performance.now();
  const step=t=>{if(!el.isConnected)return;const k=Math.min(1,(t-t0)/1100);el.textContent=Math.round(to*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)})}
 function connect(c){
@@ -212,7 +294,7 @@ function connect(c){
 function open(){
  const u=(location.protocol=="https:"?"wss":"ws")+"://"+location.host+"/ws/"+code+"?cid="+cid+"&name="+encodeURIComponent(name);
  ws=new WebSocket(u);
- ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t=="state"){const prev=S;S=m;fx(prev,m);render();FR={}}else if(m.t=="err")alert(m.m)};
+ ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t=="state"){const prev=S;S=m;fx(prev,m);render();FR={};vSync()}else if(m.t=="rtc")onRtc(m.from,m.d);else if(m.t=="err")alert(m.m)};
  ws.onclose=()=>{if(code){if(S)S.off=1;render();setTimeout(open,1500)}};
 }
 function render(){
@@ -249,7 +331,7 @@ function lobby(){
  const link=location.origin+"/?room="+S.code,y=S.you;
  return `<h1>Room ${esc(S.code)}</h1>
  <p>Share this link with friends:</p><div class="row"><input id="lk" readonly value="${esc(link)}" size="34"><button data-a="copy">Copy</button></div>
- <h2>Players here</h2><div>${S.people.map(p=>`<span class="pill">${esc(p.n)}${p.host?" (host)":""}${p.on?"":" · away"}</span>`).join("")}</div>
+ <h2>Players here</h2><div>${S.people.map(p=>`<span class="pill" data-vp="${p.pid}">${esc(p.n)}${p.host?" (host)":""}${p.on?"":" · away"}${p.voice?" 🎙":""}</span>`).join("")}</div>
  <h2>Pick your franchise</h2><div class="grid">${S.fr.map((f,i)=>`<button class="team ${y.claim==i?"me":f.o?"taken":""}" data-a="pick" data-i="${i}"><i style="background:${f.c}"></i>${f.n}<small>${y.claim==i?"You":f.o?esc(f.o):"AI unless claimed"}</small></button>`).join("")}</div>
  ${optsBox(y.host)}
  ${customBox(y.host)}
