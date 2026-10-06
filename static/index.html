@@ -322,9 +322,9 @@ function optsBox(host){
 }
 function customBox(host){
  const c=S.custom;
- const sum=c?`<div class="panel"><b class="ok">✓ Custom list: ${c.n} players</b> from ${esc(c.file)}<div class="ps">${c.W} keepers · ${c.B} batters · ${c.A} all-rounders · ${c.L} bowlers · ${c.ov} overseas. Only these players will be auctioned.${c.notes.map(n=>" "+esc(n)).join("")}</div></div>`:"";
+ const sum=c?`<div class="panel"><b class="ok">✓ Custom list: ${c.n} players</b> from ${esc(c.file)}<div class="ps">${c.W} keepers · ${c.B} batters · ${c.A} all-rounders · ${c.L} bowlers · ${c.ov} overseas. The game picks a balanced set from this list for the number of teams (about 70 for 2 teams, 26 more per extra team, up to 260): the top-rated players always play, the rest is balanced across keepers, batters, all-rounders and bowlers.${c.notes.map(n=>" "+esc(n)).join("")}</div></div>`:"";
  if(!host)return c?`<h2>Player list</h2>${sum}`:"";
- return `<h2>Custom player list (optional)</h2><p>Upload an Excel or CSV file with the columns <b>Name, Rating, Position, Overseas</b>. Only the players in your file will come up for auction. <a href="/template.xlsx">Download template</a></p>
+ return `<h2>Custom player list (optional)</h2><p>Upload an Excel or CSV file with the columns <b>Name, Rating, Position, Overseas</b>. Only players from your file will come up. A big list is fine: the game picks the right number for your team count. <a href="/template.xlsx">Download template</a></p>
  <div class="row"><input type="file" id="cf" accept=".xlsx,.xlsm,.csv,.txt">${c?`<button data-a="nocustom">Use default players</button>`:""}</div>${sum}`;
 }
 function lobby(){

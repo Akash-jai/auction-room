@@ -1,9 +1,9 @@
 """Parse a host-uploaded player list (.xlsx or .csv) into auction players.
 Columns (any order, header names are flexible): Name, Rating, Position, Overseas."""
-import csv, io, re
+import csv, io, random, re
 from players import base
 
-MAX_PLAYERS, MAX_BYTES = 500, 1_000_000
+MAX_PLAYERS, MAX_BYTES = 1000, 1_000_000
 TRUE = {"yes", "y", "true", "1", "overseas", "foreign", "foreigner", "foreign player", "o", "t", "abroad"}
 FALSE = {"no", "n", "false", "0", "", "indian", "india", "domestic", "local", "f", "-", "none"}
 INDIA = {"", "india", "indian", "ind", "in"}
@@ -104,3 +104,46 @@ def parse_upload(filename, data):
         if p["o"]: p["b"] = max(p["b"], .5)
     if dups: notes.append(f"{dups} duplicate name(s) skipped.")
     return out, notes
+
+
+# ---------- automatic selection: a balanced auction pool of the right size ----------
+SHARE = {"W": .095, "B": .29, "A": .235, "L": .38}  # keepers / batters / all-rounders / bowlers (matches a 21-man squad: 2/6/5/8)
+
+
+def auction_size(teams):
+    """How many players one auction needs: 70 for a duel, +26 per extra team, up to 260 for ten teams."""
+    return max(70, teams * 26)
+
+
+def _wsample(lst, k, lo, hi):
+    """Random pick of k players, favouring higher ratings (weight 1 to 4) but keeping variety."""
+    if k <= 0: return []
+    if k >= len(lst): return list(lst)
+    w = lambda p: 1 + 3 * (p["r"] - lo) / max(1e-9, hi - lo)
+    return sorted(lst, key=lambda p: -(random.random() ** (1 / w(p))))[:k]
+
+
+def select_players(pool, n, mq):
+    """Pick n players from a big list: the top `mq` by rating always play, the rest is balanced by position,
+    leans towards higher ratings, and keeps the list's overseas share (capped at 40%)."""
+    if len(pool) <= n: return list(pool)
+    lo, hi = min(p["r"] for p in pool), max(p["r"] for p in pool)
+    top = sorted(pool, key=lambda p: -p["r"])[:mq]
+    taken = {p["n"] for p in top}
+    rest = [p for p in pool if p["n"] not in taken]
+    need = n - len(top)
+    tg = {k: max(0, round(SHARE[k] * n) - sum(1 for p in top if p["k"] == k)) for k in SHARE}
+    tot = sum(tg.values()) or 1
+    tg = {k: round(v * need / tot) for k, v in tg.items()}
+    tg[max(tg, key=tg.get)] += need - sum(tg.values())  # fix rounding
+    ov_share = min(.4, sum(p["o"] for p in pool) / len(pool))
+    out = list(top)
+    for k, t in tg.items():
+        pk = [p for p in rest if p["k"] == k]
+        ov, ind = [p for p in pk if p["o"]], [p for p in pk if not p["o"]]
+        t_ov = min(len(ov), round(t * ov_share)); t_in = min(len(ind), t - t_ov); t_ov = min(len(ov), t - t_in)
+        for p in _wsample(ind, t_in, lo, hi) + _wsample(ov, t_ov, lo, hi):
+            out.append(p); taken.add(p["n"])
+    if len(out) < n:  # a position ran short: top up from whoever is left
+        out += _wsample([p for p in rest if p["n"] not in taken], n - len(out), lo, hi)
+    return out

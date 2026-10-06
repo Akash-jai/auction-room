@@ -5,7 +5,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
 
 from players import build_pool, order, pick
-from custom import parse_upload
+from custom import parse_upload, select_players, auction_size
 from tourney import simulate
 
 PURSE, MAXS, MINS, MAXO, MAXO_XI = 120.0, 25, 18, 8, 4
@@ -152,8 +152,8 @@ class Room:
         ais = random.sample(free, size - len(humans))
         s.teams = [Team(k, TM[i][0], TM[i][1], s.claims.get(i)) for k, i in enumerate(sorted(humans + ais))]
         if s.custom:  # only the uploaded players are auctioned
-            pool = [dict(p) for p in s.custom["players"]]
-            mq = max(5, min(30, round(len(pool) * .12)))
+            mq = min(30, 14 + size * 2)
+            pool = select_players([dict(p) for p in s.custom["players"]], auction_size(size), mq)
             q = order(pool, mq)
         else:
             pool = sorted(build_pool(), key=lambda p: -p["r"])
