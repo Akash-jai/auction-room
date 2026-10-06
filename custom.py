@@ -9,7 +9,8 @@ FALSE = {"no", "n", "false", "0", "", "indian", "india", "domestic", "local", "f
 INDIA = {"", "india", "indian", "ind", "in"}
 SYN = (("name", ("player name", "player", "name")), ("rating", ("rating", "ovr", "overall", "rate", "score")),
        ("role", ("position", "role", "type", "skill", "category")),
-       ("ov", ("overseas", "foreign", "nationality", "country")))
+       ("ov", ("overseas", "foreign", "nationality", "country")),
+       ("base", ("base price", "base", "price")))  # base price is optional
 
 
 def _txt(v):
@@ -66,10 +67,11 @@ def parse_upload(filename, data):
             float(_txt(rows[0][1])); cols, start = {"name": 0, "rating": 1, "role": 2, "ov": 3}, 0
         except (ValueError, IndexError):
             raise ValueError("Couldn't find the columns. The first row should be: Name, Rating, Position, Overseas.")
+    unit_lakh = start and "base" in cols and any(k in norm[cols["base"]] for k in ("lakh", "lac", "(l)"))
     missing = [lbl for f, lbl in (("name", "Name"), ("rating", "Rating"), ("role", "Position"), ("ov", "Overseas")) if f not in cols]
     if missing: raise ValueError("Missing column(s): " + ", ".join(missing) + ". The first row should be: Name, Rating, Position, Overseas.")
     nat = any(k in (norm[cols["ov"]] if start else "") for k in ("nationality", "country"))
-    out, errs, seen, dups = [], [], set(), 0
+    out, errs, seen, dups, bases = [], [], set(), 0, []
     for ri, r in enumerate(rows[start:], start=start + 1):
         g = lambda f: r[cols[f]] if cols[f] < len(r) else None
         name = " ".join(_txt(g("name")).split())[:40]
@@ -81,6 +83,11 @@ def parse_upload(filename, data):
             k = _role(_txt(g("role")))
             if not k: raise ValueError(f"position '{_txt(g('role'))}' not recognised (use Batter, Bowler, All-rounder or Keeper)")
             t = _txt(g("ov")).lower()
+            bp = None
+            if "base" in cols and cols["base"] < len(r) and _txt(g("base")):
+                try: bp = float(_txt(g("base")).replace(",", "."))
+                except ValueError: raise ValueError(f"base price '{_txt(g('base'))}' is not a number")
+                if bp <= 0: raise ValueError("base price must be above 0")
             if nat: o = 0 if t in INDIA else 1
             elif t in TRUE: o = 1
             elif t in FALSE: o = 0
@@ -88,7 +95,7 @@ def parse_upload(filename, data):
         except ValueError as e:
             errs.append(f"Row {ri}{' (' + name + ')' if name else ''}: {e}."); continue
         if name.lower() in seen: dups += 1; continue
-        seen.add(name.lower()); out.append(dict(n=name, k=k, o=o, r=rating))
+        seen.add(name.lower()); out.append(dict(n=name, k=k, o=o, r=rating, bp=bp))
     if errs:
         raise ValueError("Fix these rows and upload again: " + " ".join(errs[:5]) + (f" …and {len(errs) - 5} more." if len(errs) > 5 else ""))
     if len(out) > MAX_PLAYERS: raise ValueError(f"Too many players ({len(out)}). The limit is {MAX_PLAYERS}.")
@@ -98,10 +105,20 @@ def parse_upload(filename, data):
     if hi <= 10 or hi > 100 or lo < 30:  # keep pricing sensible: rescale odd rating scales to 60..95
         for p in out: p["r"] = 75 if hi == lo else 60 + (p["r"] - lo) / (hi - lo) * 35
         notes.append("Ratings were on an unusual scale, so they were rescaled to 60 to 95 for pricing.")
+    given = [p["bp"] for p in out if p["bp"] is not None]
+    lakhs = bool(given) and (unit_lakh or (max(given) > 10 and "(cr" not in norm[cols["base"]]))
+    if lakhs: notes.append("Base prices were read as lakhs (divided by 100).")
     for p in out:
         p["r"] = int(round(p["r"]))
-        p["b"] = base(p["r"])
-        if p["o"]: p["b"] = max(p["b"], .5)
+        bp = p.pop("bp")
+        if bp is not None:
+            bp = bp / 100 if lakhs else bp
+            if bp > 10: raise ValueError(f"Base price for {p['n']} is {bp:g} cr, which is too high (max 10 cr).")
+            p["b"] = round(bp, 2)
+        else:
+            p["b"] = base(p["r"])
+            if p["o"]: p["b"] = max(p["b"], .5)
+    if given and len(given) < len(out): notes.append(f"{len(out) - len(given)} player(s) had no base price, so one was set from their rating.")
     if dups: notes.append(f"{dups} duplicate name(s) skipped.")
     return out, notes
 

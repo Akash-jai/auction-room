@@ -18,7 +18,14 @@ GOAL = {"W": 2, "B": 6, "A": 5, "L": 8}
 
 
 def r2(x): return round(x + 1e-9, 2)
-def inc(x): return .1 if x < 1 else .25 if x < 2 else .5 if x < 5 else 1.0
+def nxt(x):
+    """Next bid like the real IPL: +10 lakh up to 1 cr, +25 lakh up to 5 cr, +50 lakh after that (snapped to the grid)."""
+    if x < 1: return min(1.0, r2(x + .1))
+    if x < 5: return min(5.0, r2((int(x / .25 + 1e-9) + 1) * .25))
+    return r2((int(x / .5 + 1e-9) + 1) * .5)
+
+
+def money(x): return f"₹{round(x * 100)} lakh" if x < 1 else f"₹{x:g} cr"
 def val(r): return max(.2, .2 + (r - 55) / 15) if r < 70 else 1.2 + ((r - 70) / 25) ** 2 * 15
 
 
@@ -120,7 +127,7 @@ class Room:
     def auto(s, t): return not t.owner or not s.cl.get(t.owner, {}).get("ws")
 
     # ---------- rules ----------
-    def nb(s): return s.p["b"] if s.cur is None else r2(s.cur + inc(s.cur))
+    def nb(s): return s.p["b"] if s.cur is None else nxt(s.cur)
 
     def can(s, t, p, a):
         keep = max(0, MINS - len(t.sq) - 1) * .25
@@ -271,8 +278,8 @@ class Room:
         if s.lead:
             s.lead.purse = r2(s.lead.purse - s.cur)
             s.lead.sq.append({**s.p, "paid": s.cur})
-            s.last = f"SOLD to {s.lead.n} for ₹{s.cur} cr"
-            s.log.append(f"{s.p['n']} → {s.lead.n}, ₹{s.cur} cr")
+            s.last = f"SOLD to {s.lead.n} for {money(s.cur)}"
+            s.log.append(f"{s.p['n']} → {s.lead.n}, {money(s.cur)}")
         else:
             s.unsold.append(s.p); s.last = "UNSOLD"
             s.log.append(f"{s.p['n']}: unsold")
@@ -441,16 +448,16 @@ def template():
     from openpyxl import Workbook
     from openpyxl.styles import Font
     wb = Workbook(); ws = wb.active; ws.title = "Players"
-    ws.append(["Name", "Rating", "Position", "Overseas"])
-    for r in [("Virat Kohli", 92, "Batter", "No"), ("Jasprit Bumrah", 95, "Bowler", "No"), ("Rishabh Pant", 90, "Keeper", "No"),
-              ("Hardik Pandya", 90, "All-rounder", "No"), ("Jos Buttler", 90, "Keeper", "Yes"), ("Rashid Khan", 92, "Bowler", "Yes"),
-              ("Andre Russell", 85, "All-rounder", "Yes"), ("Travis Head", 90, "Batter", "Yes")]: ws.append(r)
+    ws.append(["Name", "Rating", "Position", "Overseas", "Base Price (Cr)"])
+    for r in [("Virat Kohli", 92, "Batter", "No", 2), ("Jasprit Bumrah", 95, "Bowler", "No", 2), ("Rishabh Pant", 90, "Keeper", "No", 2),
+              ("Hardik Pandya", 90, "All-rounder", "No", 2), ("Jos Buttler", 90, "Keeper", "Yes", 2), ("Rashid Khan", 92, "Bowler", "Yes", 2),
+              ("Andre Russell", 85, "All-rounder", "Yes", 1.5), ("Travis Head", 90, "Batter", "Yes", 2)]: ws.append(r)
     for c in ws[1]: c.font = Font(bold=True)
-    for col, w in zip("ABCD", (24, 10, 14, 11)): ws.column_dimensions[col].width = w
+    for col, w in zip("ABCDE", (24, 10, 14, 11, 16)): ws.column_dimensions[col].width = w
     h = wb.create_sheet("Help")
     for line in ["Only the first sheet (Players) is read.", "Name: player name (must be unique).",
                  "Rating: number, 60 to 95 works best (higher = better = pricier).",
-                 "Position: Batter, Bowler, All-rounder or Keeper.", "Overseas: Yes or No.",
+                 "Position: Batter, Bowler, All-rounder or Keeper.", "Overseas: Yes or No.", "Base Price (Cr): optional, in crore (0.2 = 20 lakh). Leave the column out and the game sets it from the rating.",
                  "Replace the example rows with your own players. You need at least 18 players per team."]: h.append([line])
     h.column_dimensions["A"].width = 80
     b = io.BytesIO(); wb.save(b)
