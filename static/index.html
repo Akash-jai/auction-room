@@ -319,7 +319,7 @@ if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=pickVoice;pickVo
 // Speech rules: "sold"/"next" calls are queued and are NEVER cut off. "tick" (going once/twice) may cut a bid call.
 // "bid" calls only play when the auctioneer is idle; afterwards he catches up with the latest price/team.
 // Pronunciation: the voice reads text literally, so respell words it gets wrong. Edit PRON to add more (spoken text only; the screen is unchanged).
-const PRON=[[/\blakhs?\b/gi,"laakh"],[/\bcrores?\b/gi,"crore"],
+const PRON=[[/\blakhs?\b/gi,"lakhs"],[/\bcrores?\b/gi,"crore"],
  [/\bPunjab\b/g,"Punjaab"],[/\bRajasthan\b/g,"Raajasthaan"],[/\bGujarat\b/g,"Gujaraat"],[/\bHyderabad\b/g,"Hyderabaad"],[/\bBengaluru\b/g,"Bengalooru"],[/\bKolkata\b/g,"Kolkaata"],[/\bLucknow\b/g,"Luck now"],[/\bChennai\b/g,"Chennai"],
  [/\bLhuan-dre\b/g,"Lwahn-dray"],[/\bNaveen-ul-Haq\b/g,"Naveen ul Haq"],[/\bMisbah-ul-Haq\b/g,"Misbah ul Haq"],[/\bde Villiers\b/g,"de Villiers"],[/\bPrabhsimran\b/g,"Prabh simran"]];
 function spell(t,voice){
