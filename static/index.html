@@ -318,8 +318,17 @@ function pickVoice(){if(!("speechSynthesis" in window))return;
 if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=pickVoice;pickVoice()}
 // Speech rules: "sold"/"next" calls are queued and are NEVER cut off. "tick" (going once/twice) may cut a bid call.
 // "bid" calls only play when the auctioneer is idle; afterwards he catches up with the latest price/team.
+// Pronunciation: the voice reads text literally, so respell words it gets wrong. Edit PRON to add more (spoken text only; the screen is unchanged).
+const PRON=[[/\blakhs?\b/gi,"laakh"],[/\bcrores?\b/gi,"crore"],
+ [/\bPunjab\b/g,"Punjaab"],[/\bRajasthan\b/g,"Raajasthaan"],[/\bGujarat\b/g,"Gujaraat"],[/\bHyderabad\b/g,"Hyderabaad"],[/\bBengaluru\b/g,"Bengalooru"],[/\bKolkata\b/g,"Kolkaata"],[/\bLucknow\b/g,"Luck now"],[/\bChennai\b/g,"Chennai"],
+ [/\bLhuan-dre\b/g,"Lwahn-dray"],[/\bNaveen-ul-Haq\b/g,"Naveen ul Haq"],[/\bMisbah-ul-Haq\b/g,"Misbah ul Haq"],[/\bde Villiers\b/g,"de Villiers"],[/\bPrabhsimran\b/g,"Prabh simran"]];
+function spell(t,voice){
+ t=t.replace(/\b([A-Z]{2,3})\b(?=\s+[A-Za-z][a-z])/g,(m,x)=>x.split("").join(" ")); // KL Rahul -> K L Rahul, MS Dhoni -> M S Dhoni
+ const indian=voice&&/en[-_]IN/i.test(voice.lang); // Indian-English voices already say lakh/crore/place names correctly
+ PRON.forEach(([r,v],i)=>{if(!(indian&&i<9))t=t.replace(r,v)});
+ return t.replace(/-/g," ")}
 function utter(it){
- const u=new SpeechSynthesisUtterance(it.t),k=it.k,id=Date.now()+Math.random();
+ const u=new SpeechSynthesisUtterance(spell(it.t,AU.voice)),k=it.k,id=Date.now()+Math.random();
  if(AU.voice){u.voice=AU.voice;u.lang=AU.voice.lang}
  u.rate=k=="bid"?1.1:k=="tick"?1.05:k=="sold"?1.08:1.03;u.pitch=k=="sold"?1.05:1;u.volume=1;
  const c=AU.cur={k,id};
