@@ -176,7 +176,7 @@ function confetti(cols){const f=$("fx");for(let i=0;i<80;i++){const e=document.c
  f.appendChild(e);setTimeout(()=>e.remove(),4200)}}
 function showSold(cur){
  const L=cur.lot,lead=cur.teams.find(t=>t.i==L.lead),y=cur.you.team;
- say(lead?`Sold! ${L.p.n} goes to ${lead.n} for ${sayMoney(L.cur)}.`:`${L.p.n}. Unsold.`);
+ say(lead?`Sold! ${L.p.n} goes to ${lead.n}, for ${sayMoney(L.cur)}!`:`${L.p.n}. Unsold.`,"sold");AU.last=null;
  const r=(document.querySelector(".lot")||document.body).getBoundingClientRect(),o=document.createElement("div");
  o.className="stampov";o.style.cssText=`top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${r.height}px`;
  o.innerHTML=`<div class="stampbox" style="--tc:${lead?lead.c:"#7a7a7a"}"><b>${lead?"SOLD":"UNSOLD"}</b>${lead?`<span>${esc(L.p.n)} → ${esc(lead.n)}</span><span>${fm(L.cur)}</span>`:`<span>${esc(L.p.n)}</span>`}</div>`;
@@ -185,7 +185,7 @@ function showSold(cur){
 }
 function fx(prev,cur){
  FR={};
- if(prev&&prev.phase!="auction"&&cur.phase=="auction"&&cur.lot)say(`Ladies and gentlemen, let the auction begin! First up, ${cur.lot.p.n}, ${ROLEW[cur.lot.p.k]}. Base price ${sayMoney(cur.lot.p.b)}.`);
+ if(prev&&prev.phase!="auction"&&cur.phase=="auction"&&cur.lot)say(`Ladies and gentlemen, let the auction begin! First up, ${cur.lot.p.n}, ${ROLEW[cur.lot.p.k]}. Base price, ${sayMoney(cur.lot.p.b)}.`,"next");
  if(prev&&prev.phase=="auction"){
   if(cur.vote&&!prev.vote){tone(587,.1,"triangle",.12);tone(784,.14,"triangle",.12,.11)}
   if(prev.vote&&!cur.vote){if(cur.phase=="auction")toast("Vote failed. The auction continues.");else toast("Vote passed! The auction has ended.")}
@@ -193,11 +193,11 @@ function fx(prev,cur){
  if(cur.phase=="end"&&prev&&prev.phase!="end"){const w=cur.tour?cur.res.find(x=>x.n==cur.tour.champion):cur.res[0];confetti([w.c,"#ffd54a","#ffffff","#ff6b6b"]);SFX.fan();return}
  if(!prev||prev.phase!="auction"||cur.phase!="auction"||!prev.lot||!cur.lot)return;
  const a=prev.lot,b=cur.lot,y=cur.you.team;
- if(a.i!=b.i){clk={lot:b.i,total:Math.max(1,b.tl),prev:b.tl};say(`Next up, ${b.p.n}, ${ROLEW[b.p.k]}. Base price ${sayMoney(b.p.b)}.`);return}
+ if(a.i!=b.i){clk={lot:b.i,total:Math.max(1,b.tl),prev:b.tl};say(`Next up, ${b.p.n}, ${ROLEW[b.p.k]}. Base price, ${sayMoney(b.p.b)}.`,"next");AU.last={lot:b.i,cur:null,lead:null};return}
  if(b.nbids>a.nbids){FR.bid=1;clk.total=Math.max(1,b.tl);
   if(b.lead==y){FR.mine=1;SFX.mine()}else if(a.lead==y&&y!=null){FR.outbid=1;SFX.out()}else SFX.bid();
-  const bl=cur.teams.find(t=>t.i==b.lead);if(bl)say(`${sayMoney(b.cur)}. ${bl.n}.`,false)}
- if(b.st=="bidding"&&b.lead!=null&&b.tl!=a.tl){if(b.tl==3)say("Going once.");else if(b.tl==2)say("Going twice.")}
+  const bl=cur.teams.find(t=>t.i==b.lead);if(bl)say(`${sayMoney(b.cur)}. ${bl.n}.`,"bid",{lot:b.i,cur:b.cur,lead:b.lead})}
+ if(b.st=="bidding"&&b.lead!=null&&b.tl!=a.tl){if(b.tl==3)say("Going once.","tick");else if(b.tl==2)say("Going twice.","tick")}
  if(b.st=="result"&&a.st!="result")showSold(cur);
  else if(b.st=="bidding"&&b.tl<a.tl&&b.tl>=1&&b.tl<=3)SFX.tick();
 }
@@ -303,16 +303,48 @@ document.addEventListener("keyup",e=>{if(e.code=="Space"&&VC.on&&VC.ptt){e.preve
 window.addEventListener("blur",()=>setTalk(false));
 
 // ---------- auctioneer voice ----------
-const AU={on:localStorage.getItem("auc")!="0",voice:null};
-function pickVoice(){if(!("speechSynthesis" in window))return;const v=speechSynthesis.getVoices();AU.voice=v.find(x=>/en[-_]IN/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
+const AU={on:localStorage.getItem("auc")!="0",voice:null,q:[],cur:null,last:null};
+// Prefer natural/neural voices (Edge "Online (Natural)", Google, Apple), Indian English first, avoid robotic "compact" ones
+function voiceScore(v){const n=v.name+" "+v.lang;let s=0;
+ if(/natural|neural|online/i.test(n))s+=50;if(/google/i.test(n))s+=25;if(/premium|enhanced/i.test(n))s+=30;
+ if(/en[-_]IN/i.test(v.lang))s+=20;else if(/en[-_](GB|AU|US)/i.test(v.lang))s+=8;
+ if(/rishi|daniel|aaron|ryan|guy|prabhat|ravi|david|mark|male/i.test(v.name))s+=6;
+ if(/compact|espeak|novelty|bad news|bahh|bells|boing|cellos|good news|jester|organ|superstar|trinoids|whisper|zarvox/i.test(n))s-=60;
+ if(v.localService===false)s+=3;return s}
+function pickVoice(){if(!("speechSynthesis" in window))return;
+ const v=speechSynthesis.getVoices().filter(x=>/^en/i.test(x.lang)).sort((a,b)=>voiceScore(b)-voiceScore(a));AU.voice=v[0]||null}
 if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=pickVoice;pickVoice()}
-function say(t,interrupt=true){if(!AU.on||!("speechSynthesis" in window))return;
- if(interrupt)speechSynthesis.cancel();else if(speechSynthesis.speaking)return;
- const u=new SpeechSynthesisUtterance(t);if(AU.voice)u.voice=AU.voice;u.rate=1.05;u.pitch=.85;speechSynthesis.speak(u)}
+// Speech rules: "sold"/"next" calls are queued and are NEVER cut off. "tick" (going once/twice) may cut a bid call.
+// "bid" calls only play when the auctioneer is idle; afterwards he catches up with the latest price/team.
+function utter(it){
+ const u=new SpeechSynthesisUtterance(it.t),k=it.k,id=Date.now()+Math.random();
+ if(AU.voice){u.voice=AU.voice;u.lang=AU.voice.lang}
+ u.rate=k=="bid"?1.05:k=="tick"?.95:k=="sold"?.97:1;u.pitch=k=="sold"?1.05:1;u.volume=1;
+ const c=AU.cur={k,id};
+ if(k=="bid"&&it.meta)AU.last=it.meta;
+ let done=false;const fin=()=>{if(done||AU.cur!==c)return;done=true;clearTimeout(c.tm);AU.cur=null;nextCall()};
+ u.onend=u.onerror=fin;
+ c.tm=setTimeout(()=>{try{speechSynthesis.cancel()}catch(e){}fin()},5000+it.t.length*150); // safety if onend never fires
+ speechSynthesis.speak(u)}
+function nextCall(){
+ if(!AU.on)return;
+ if(AU.q.length)return utter(AU.q.shift());
+ const L=S&&S.phase=="auction"&&S.lot,l=AU.last; // catch up: say only the latest price/team, once per call
+ if(L&&L.st=="bidding"&&L.lead!=null&&l&&l.lot==L.i&&(l.cur!=L.cur||l.lead!=L.lead)){
+  const t=S.teams.find(x=>x.i==L.lead);if(t)utter({k:"bid",t:`${sayMoney(L.cur)}. ${t.n}.`,meta:{lot:L.i,cur:L.cur,lead:L.lead}})}}
+function interrupt(it){const c=AU.cur;if(c)clearTimeout(c.tm);speechSynthesis.cancel();AU.cur={k:"gap"};if(it)AU.q.unshift(it);
+ setTimeout(()=>{AU.cur=null;nextCall()},60)} // small gap: Chrome drops speak() right after cancel()
+function say(t,k="next",meta){
+ if(!AU.on||!("speechSynthesis" in window))return;
+ const it={t,k,meta},c=AU.cur;
+ if(k=="bid"){if(c||AU.q.length)return;return utter(it)}
+ if(k=="tick"){if(AU.q.length||(c&&c.k!="bid"))return;return c?interrupt(it):utter(it)}
+ AU.q.push(it);
+ if(!c)nextCall();else if(c.k=="bid"||c.k=="tick")interrupt()}
 function sayMoney(x){if(x<1)return Math.round(x*100)+" lakh";const c=Math.floor(x+1e-9),l=Math.round((x-c)*100);return c+" crore"+(l?" "+l+" lakh":"")}
 const ROLEW={B:"batter",L:"bowler",A:"all-rounder",W:"wicketkeeper"};
 const aub=$("auc");aub.textContent=AU.on?"📢":"🔕";
-aub.addEventListener("click",()=>{AU.on=!AU.on;localStorage.setItem("auc",AU.on?"1":"0");aub.textContent=AU.on?"📢":"🔕";if(AU.on)say("Auctioneer is on.");else if("speechSynthesis" in window)speechSynthesis.cancel()});
+aub.addEventListener("click",()=>{AU.on=!AU.on;localStorage.setItem("auc",AU.on?"1":"0");aub.textContent=AU.on?"📢":"🔕";if(AU.on)say("Auctioneer is on.");else if("speechSynthesis" in window){AU.q=[];AU.cur=null;AU.last=null;speechSynthesis.cancel()}});
 // ---------- emoji reactions ----------
 let lastRx=0;
 function showReact(m){const f=$("fx"),e=document.createElement("div");e.className="rx";e.style.left=(8+Math.random()*80)+"%";
