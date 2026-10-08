@@ -40,10 +40,11 @@ button.pl{display:inline-block;margin:3px;padding:6px 10px;border:2px solid var(
 button.pl.on{background:var(--acc);border-color:var(--acc);color:var(--accfg,#1a1200);font-weight:700}
 .ok{color:var(--ok);font-weight:700}.no{color:var(--bad);font-weight:700}
 details{margin:4px 0}summary{cursor:pointer}
-#vc{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:62px;z-index:61}
+#top{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:10px;z-index:61;display:flex;gap:6px;align-items:flex-start}
+#top>*{position:relative}#top .vcb{font-size:1rem}
 .vcb{border-radius:99px;padding:5px 12px;background:var(--card);border-color:var(--line);font-size:.9rem}
 .vcb.live{border-color:#1c8a4a;box-shadow:0 0 0 2px rgba(28,138,74,.25)}
-.vcp{position:absolute;top:44px;right:0;width:min(320px,86vw);background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.vcp{position:fixed;top:calc(52px + env(safe-area-inset-top,0px));right:10px;z-index:62;width:min(340px,92vw);background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
 .vr{display:flex;align-items:center;gap:8px;margin:6px 0}.vr input{flex:1;min-width:60px}
 .vd{width:14px;height:14px;border-radius:50%;background:var(--line);flex:none;transition:all .15s}
 .vd.talk{background:#1c8a4a;box-shadow:0 0 0 4px rgba(28,138,74,.35)}
@@ -62,7 +63,7 @@ body.voting #app{padding-bottom:190px}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:70;padding:10px 18px;border-radius:99px;background:#10244f;color:#fff;font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,.3);animation:toast 3.4s both}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,16px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
 
-#mini{position:fixed;top:0;left:0;right:0;z-index:40;display:none;align-items:center;justify-content:space-between;gap:10px;padding:calc(6px + env(safe-area-inset-top,0px)) 175px 6px 12px;background:var(--card);border-bottom:2px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.15)}
+#mini{position:fixed;top:calc(50px + env(safe-area-inset-top,0px));left:0;right:0;z-index:40;display:none;align-items:center;justify-content:space-between;gap:10px;padding:6px 12px;background:var(--card);border-bottom:2px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.15)}
 #mini .mi{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;min-width:0}
 #mini .mp{font-size:1.25rem;font-weight:800;color:var(--acc)}#mini .mt{font-weight:800}#mini .mt.low{color:var(--bad)}
 #mini button{padding:8px 14px;white-space:nowrap}
@@ -115,7 +116,13 @@ body.voting #app{padding-bottom:190px}
 @keyframes slam{0%{transform:scale(3.2) rotate(-20deg);opacity:0}60%{transform:scale(.92) rotate(-8deg);opacity:1}80%{transform:scale(1.05) rotate(-8deg)}100%{transform:scale(1) rotate(-8deg)}}
 .cf{position:absolute;top:-24px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(112vh) rotate(720deg)}}
-#mute{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:10px;z-index:60;border-radius:99px;padding:5px 11px;background:var(--card);border-color:var(--line);font-size:1.05rem}
+#cmsgs{max-height:40vh;overflow-y:auto;margin-bottom:8px}.cm{margin:3px 0;word-break:break-word}
+#chn{background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;margin-left:4px;font-size:.75rem;font-weight:800}
+#chp .row input{flex:1;min-width:0;padding:8px 10px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font:inherit}
+.rxbar{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.rxbar button{padding:4px 12px;font-size:1.3rem;border-radius:99px}
+.rx{position:absolute;bottom:-40px;display:grid;justify-items:center;animation:floatup 2.8s ease-out forwards}
+.rx span{font-size:2.6rem;filter:drop-shadow(0 4px 6px rgba(0,0,0,.3))}.rx small{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:99px;background:rgba(16,36,79,.85);color:#fff}
+@keyframes floatup{0%{transform:translateY(0) scale(.5);opacity:0}12%{opacity:1;transform:translateY(-8vh) scale(1.1)}100%{transform:translateY(-70vh) scale(1);opacity:0}}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
 @media(max-width:760px){.cols{grid-template-columns:1fr}}
 .feed{display:grid;gap:4px}
@@ -136,7 +143,10 @@ body.voting #app{padding-bottom:190px}
 .pill.K-W{border-color:#c77d0a}.pill.K-B{border-color:#2b6fd6}.pill.K-A{border-color:#7b3fc4}.pill.K-L{border-color:#1c8a4a}
 
 </style></head>
-<body><main id="app"></main><div id="fx"></div><div id="mini"></div><div id="vote"></div><div id="vc"></div><div id="voice" style="display:none"></div><button id="mute" aria-label="Toggle sound">🔊</button>
+<body><main id="app"></main><div id="fx"></div><div id="mini"></div><div id="vote"></div><div id="voice" style="display:none"></div>
+<div id="top"><div id="chatw"><button class="vcb" id="chb" aria-label="Chat">💬<span id="chn"></span></button>
+<div class="vcp" id="chp" style="display:none"><div id="cmsgs"></div><div class="row"><input id="cin" maxlength="200" placeholder="Say something..." autocomplete="off"><button class="go" id="csend">Send</button></div></div></div>
+<div id="vc"></div><button class="vcb" id="auc" aria-label="Auctioneer voice" title="Auctioneer voice">📢</button><button class="vcb" id="mute" aria-label="Toggle sound" title="Sound effects">🔊</button></div>
 <script>
 const $=id=>document.getElementById(id),app=$("app");
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -165,7 +175,9 @@ function confetti(cols){const f=$("fx");for(let i=0;i<80;i++){const e=document.c
  e.style.cssText=`left:${Math.random()*100}%;background:${cols[i%cols.length]};animation-duration:${1.6+Math.random()*1.6}s;animation-delay:${Math.random()*.5}s;transform:rotate(${Math.random()*360}deg)`;
  f.appendChild(e);setTimeout(()=>e.remove(),4200)}}
 function showSold(cur){
- const L=cur.lot,lead=cur.teams.find(t=>t.i==L.lead),y=cur.you.team,r=(document.querySelector(".lot")||document.body).getBoundingClientRect(),o=document.createElement("div");
+ const L=cur.lot,lead=cur.teams.find(t=>t.i==L.lead),y=cur.you.team;
+ say(lead?`Sold! ${L.p.n} goes to ${lead.n} for ${sayMoney(L.cur)}.`:`${L.p.n}. Unsold.`);
+ const r=(document.querySelector(".lot")||document.body).getBoundingClientRect(),o=document.createElement("div");
  o.className="stampov";o.style.cssText=`top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${r.height}px`;
  o.innerHTML=`<div class="stampbox" style="--tc:${lead?lead.c:"#7a7a7a"}"><b>${lead?"SOLD":"UNSOLD"}</b>${lead?`<span>${esc(L.p.n)} → ${esc(lead.n)}</span><span>${fm(L.cur)}</span>`:`<span>${esc(L.p.n)}</span>`}</div>`;
  $("fx").appendChild(o);setTimeout(()=>o.remove(),2700);
@@ -173,6 +185,7 @@ function showSold(cur){
 }
 function fx(prev,cur){
  FR={};
+ if(prev&&prev.phase!="auction"&&cur.phase=="auction"&&cur.lot)say(`Ladies and gentlemen, let the auction begin! First up, ${cur.lot.p.n}, ${ROLEW[cur.lot.p.k]}. Base price ${sayMoney(cur.lot.p.b)}.`);
  if(prev&&prev.phase=="auction"){
   if(cur.vote&&!prev.vote){tone(587,.1,"triangle",.12);tone(784,.14,"triangle",.12,.11)}
   if(prev.vote&&!cur.vote){if(cur.phase=="auction")toast("Vote failed. The auction continues.");else toast("Vote passed! The auction has ended.")}
@@ -180,9 +193,11 @@ function fx(prev,cur){
  if(cur.phase=="end"&&prev&&prev.phase!="end"){const w=cur.tour?cur.res.find(x=>x.n==cur.tour.champion):cur.res[0];confetti([w.c,"#ffd54a","#ffffff","#ff6b6b"]);SFX.fan();return}
  if(!prev||prev.phase!="auction"||cur.phase!="auction"||!prev.lot||!cur.lot)return;
  const a=prev.lot,b=cur.lot,y=cur.you.team;
- if(a.i!=b.i){clk={lot:b.i,total:Math.max(1,b.tl),prev:b.tl};return}
+ if(a.i!=b.i){clk={lot:b.i,total:Math.max(1,b.tl),prev:b.tl};say(`Next up, ${b.p.n}, ${ROLEW[b.p.k]}. Base price ${sayMoney(b.p.b)}.`);return}
  if(b.nbids>a.nbids){FR.bid=1;clk.total=Math.max(1,b.tl);
-  if(b.lead==y){FR.mine=1;SFX.mine()}else if(a.lead==y&&y!=null){FR.outbid=1;SFX.out()}else SFX.bid()}
+  if(b.lead==y){FR.mine=1;SFX.mine()}else if(a.lead==y&&y!=null){FR.outbid=1;SFX.out()}else SFX.bid();
+  const bl=cur.teams.find(t=>t.i==b.lead);if(bl)say(`${sayMoney(b.cur)}. ${bl.n}.`,false)}
+ if(b.st=="bidding"&&b.lead!=null&&b.tl!=a.tl){if(b.tl==3)say("Going once.");else if(b.tl==2)say("Going twice.")}
  if(b.st=="result"&&a.st!="result")showSold(cur);
  else if(b.st=="bidding"&&b.tl<a.tl&&b.tl>=1&&b.tl<=3)SFX.tick();
 }
@@ -277,7 +292,7 @@ function vcRefresh(force){
  $("vc").innerHTML=h;paintSpeak();
 }
 $("vc").addEventListener("click",e=>{const b=e.target.closest("[data-v]");if(!b)return;const v=b.dataset.v;
- if(v=="toggle"){VC.open=!VC.open;vcRefresh(true)}else if(v=="join")vJoin();else if(v=="leave")vLeave();
+ if(v=="toggle"){VC.open=!VC.open;if(VC.open){CH.open=false;$("chp").style.display="none"}vcRefresh(true)}else if(v=="join")vJoin();else if(v=="leave")vLeave();
  else if(v=="mute"){VC.muted=!VC.muted;applyMic();vcRefresh(true)}
  else if(v=="ptt"){VC.ptt=!VC.ptt;localStorage.setItem("vptt",VC.ptt?"1":"0");VC.talking=false;applyMic();vcRefresh(true)}});
 $("vc").addEventListener("input",e=>{if(e.target.dataset.v!="vol")return;const p=e.target.dataset.p,x=e.target.value/100;VC.vol[p]=x;if(VC.aud[p])VC.aud[p].volume=x});
@@ -286,6 +301,34 @@ $("vc").addEventListener("pointerdown",e=>{if(e.target.closest("#ptb"))setTalk(t
 document.addEventListener("keydown",e=>{if(e.code=="Space"&&VC.on&&VC.ptt&&!e.repeat&&!/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)){e.preventDefault();setTalk(true)}});
 document.addEventListener("keyup",e=>{if(e.code=="Space"&&VC.on&&VC.ptt){e.preventDefault();setTalk(false)}});
 window.addEventListener("blur",()=>setTalk(false));
+
+// ---------- auctioneer voice ----------
+const AU={on:localStorage.getItem("auc")!="0",voice:null};
+function pickVoice(){if(!("speechSynthesis" in window))return;const v=speechSynthesis.getVoices();AU.voice=v.find(x=>/en[-_]IN/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
+if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=pickVoice;pickVoice()}
+function say(t,interrupt=true){if(!AU.on||!("speechSynthesis" in window))return;
+ if(interrupt)speechSynthesis.cancel();else if(speechSynthesis.speaking)return;
+ const u=new SpeechSynthesisUtterance(t);if(AU.voice)u.voice=AU.voice;u.rate=1.05;u.pitch=.85;speechSynthesis.speak(u)}
+function sayMoney(x){if(x<1)return Math.round(x*100)+" lakh";const c=Math.floor(x+1e-9),l=Math.round((x-c)*100);return c+" crore"+(l?" "+l+" lakh":"")}
+const ROLEW={B:"batter",L:"bowler",A:"all-rounder",W:"wicketkeeper"};
+const aub=$("auc");aub.textContent=AU.on?"📢":"🔕";
+aub.addEventListener("click",()=>{AU.on=!AU.on;localStorage.setItem("auc",AU.on?"1":"0");aub.textContent=AU.on?"📢":"🔕";if(AU.on)say("Auctioneer is on.");else if("speechSynthesis" in window)speechSynthesis.cancel()});
+// ---------- emoji reactions ----------
+let lastRx=0;
+function showReact(m){const f=$("fx"),e=document.createElement("div");e.className="rx";e.style.left=(8+Math.random()*80)+"%";
+ e.innerHTML=`<span>${esc(m.e)}</span><small style="${m.c?"background:"+m.c+";color:"+fg(m.c):""}">${esc(m.n)}</small>`;f.appendChild(e);setTimeout(()=>e.remove(),3000);tone(700+Math.random()*500,.06,"sine",.05)}
+function rxBar(){return `<div class="rxbar">${["🔥","😂","💀","👏","😱","🤯","🐐","🫡"].map(e=>`<button data-a="react" data-e="${e}" aria-label="React ${e}">${e}</button>`).join("")}</div>`}
+// ---------- chat ----------
+const CH={open:false,unread:0};
+function chBadge(){$("chn").textContent=CH.unread?CH.unread:""}
+function chLine(m){const d=document.createElement("div");d.className="cm";d.innerHTML=`<b style="color:${m.c||"var(--mut)"}">${esc(m.n)}</b> ${esc(m.m)}`;return d}
+function chatAdd(m){const b=$("cmsgs");b.appendChild(chLine(m));while(b.children.length>60)b.removeChild(b.firstChild);b.scrollTop=1e9;if(!CH.open){CH.unread++;chBadge()}}
+function chatLog(l){const b=$("cmsgs");b.innerHTML="";l.forEach(m=>b.appendChild(chLine(m)));b.scrollTop=1e9}
+function chSend(){const i=$("cin"),t=i.value.trim();if(!t)return;send({t:"chat",m:t});i.value=""}
+$("chb").addEventListener("click",()=>{CH.open=!CH.open;$("chp").style.display=CH.open?"block":"none";if(CH.open){CH.unread=0;chBadge();VC.open=false;vcRefresh(true);$("cmsgs").scrollTop=1e9;$("cin").focus()}});
+$("csend").addEventListener("click",chSend);
+$("cin").addEventListener("keydown",e=>{if(e.key=="Enter"){e.preventDefault();chSend()}e.stopPropagation()});
+$("cin").addEventListener("keyup",e=>e.stopPropagation());
 function endFx(){document.querySelectorAll(".cu").forEach(el=>{const to=+el.dataset.to,t0=performance.now();
  const step=t=>{if(!el.isConnected)return;const k=Math.min(1,(t-t0)/1100);el.textContent=Math.round(to*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)})}
 function connect(c){
@@ -294,7 +337,7 @@ function connect(c){
 function open(){
  const u=(location.protocol=="https:"?"wss":"ws")+"://"+location.host+"/ws/"+code+"?cid="+cid+"&name="+encodeURIComponent(name);
  ws=new WebSocket(u);
- ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t=="state"){const prev=S;S=m;fx(prev,m);render();FR={};vSync()}else if(m.t=="rtc")onRtc(m.from,m.d);else if(m.t=="err")alert(m.m)};
+ ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t=="state"){const prev=S;S=m;fx(prev,m);render();FR={};vSync()}else if(m.t=="rtc")onRtc(m.from,m.d);else if(m.t=="react")showReact(m);else if(m.t=="chat")chatAdd(m);else if(m.t=="chatlog")chatLog(m.msgs);else if(m.t=="err")alert(m.m)};
  ws.onclose=()=>{if(code){if(S)S.off=1;render();setTimeout(open,1500)}};
 }
 function render(){
@@ -369,6 +412,7 @@ function auction(){
  ${res?`<div class="stamp ${L.last=="UNSOLD"?"uns":"sold"}">${esc(L.last)}</div>`:`<div class="stamp">${lead?`Leading: <b style="color:${lead.c}">${esc(lead.n)}</b>`:"Waiting for an opening bid"}</div>
  <div class="tbar ${left<=2?"low":""}"><i style="--from:${pct}%;animation-duration:${left}s"></i></div><div class="clock" style="color:${left<=5?"var(--bad)":"inherit"}">${left}s</div>`}</div>
  ${me?`<button class="go bigbtn ${FR.outbid?"shake":""}" id="bid" style="background:${me.c};border-color:${me.c};color:${fg(me.c)}" ${L.can?"":"disabled"}>${res?"Next player coming…":me.i==L.lead?"You lead":"Bid "+fm(L.nb)}</button>`:"<p>You are spectating.</p>"}
+ ${rxBar()}
  <div class="cols"><div>
   <h2>Bids on this player</h2><div class="feed">${L.bids.length?L.bids.map((b,i)=>`<div class="fb ${i==0?"top":""}"><span><b style="color:${b.c}">■</b> ${esc(b.n)}</span><span>${fm(b.a)}</span></div>`).join(""):"<p>No bids yet.</p>"}</div>
   <h2>Purses</h2>${T.map(t=>`<div class="pr ${t.i==L.lead?"hot":""} ${t.i==y.team?"mine":""}"><div class="pt"><span><b style="color:${t.c}">■</b> ${esc(t.n)}${t.o?" ("+esc(t.o)+")":""}${t.i==y.team?" ← you":""}</span><span>${fm(t.purse)}</span></div>
@@ -427,7 +471,7 @@ function end(){
   const series=T.format.startsWith("Best");
   const sc=series?T.playoffs.reduce((a,g)=>(a[g.w]=(a[g.w]||0)+1,a),{}):null;
   return hero(ch.c,esc(ch.n)+" are the champions!",series?`Won the series ${sc[ch.n]||0} to ${sc[T.runner]||0} against ${esc(T.runner)}`:`${esc(T.format)}. Runner-up: ${esc(T.runner)}`,mine?(mine==1?"🎉 That's your team. Congratulations!":"Your team finished "+place(mine)):"")
-  +podium(ord.slice(0,3).map((x,i)=>({n:x.n,c:x.c,o:x.o,v:place(i+1)})))
+  +rxBar()+podium(ord.slice(0,3).map((x,i)=>({n:x.n,c:x.c,o:x.o,v:place(i+1)})))
   +`<h2>${series?"The series":"Playoffs"}</h2><div class="po">${T.playoffs.map(g=>`<div class="pm"><small>${esc(g.round)}</small><div><b style="color:${g.ac}">${esc(g.a)}</b> v <b style="color:${g.bc}">${esc(g.b)}</b></div><div>🏆 <b>${esc(g.w)}</b></div></div>`).join("")}</div>
   <h2>${series?"Series":"League"} table</h2><div class="tw"><table class="tt"><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>Pts</th><th>XI</th><th>Depth loss</th><th>Hit by injuries</th></tr>${T.table.map((x,i)=>`<tr class="${x.n==ch.n?"ch":""}"><td>${i+1}</td><td><b style="color:${x.c}">■</b> ${esc(x.n)}${x.o?" ("+esc(x.o)+")":""}</td><td>${x.p}</td><td>${x.w}</td><td>${x.l}</td><td><b>${x.pts}</b></td><td>${x.full}</td><td>−${x.depth}</td><td>${x.inj}</td></tr>`).join("")}</table></div>
   <p class="ps">Every match, players can be injured or rested and the next-best bench players step in. <b>Depth loss</b> is how much weaker the XI was on average after that, so smaller means a deeper squad. <b>Hit by injuries</b> is the number of matches that lost at least one of your chosen XI.</p>
@@ -435,7 +479,7 @@ function end(){
  }
  const w=R[0],mine=R.findIndex(x=>x.i==y)+1,lo=R[R.length-1].score-30,hi=w.score;
  return hero(w.c,esc(w.n)+" win the auction!",R[1]?`${w.score} points, ${w.score-R[1].score} ahead of ${esc(R[1].n)}`:`${w.score} points`,mine?(mine==1?"🎉 That's your team. Congratulations!":"Your team finished "+place(mine)):"")
- +podium(R.slice(0,3).map(x=>({n:x.n,c:x.c,o:x.o,v:x.score})))
+ +rxBar()+podium(R.slice(0,3).map(x=>({n:x.n,c:x.c,o:x.o,v:x.score})))
  +`<h2>Scores</h2>${R.map(x=>`<div class="sb"><b style="color:${x.c}">${esc(x.n)}</b><div class="bar2"><i style="width:${Math.max(6,(x.score-lo)/Math.max(1,hi-lo)*100)}%;background:${x.c}"></i></div><b>${x.score}</b></div>`).join("")}
  <p class="ps">Score = total rating of the playing XI (max 4 overseas) plus bonuses: keeper +8, bowling attack of 5+ bowlers or all-rounders +10, batting depth of 5+ batters, keepers or all-rounders +6. Squads under ${S.limits.min} lose 100.</p>
  <h2>Playing XIs</h2>${R.map((x,i)=>xiCard(x,i+1)).join("")}${host}`;
@@ -455,6 +499,7 @@ app.addEventListener("click",e=>{
   if(c.trim())connect(c);
  }else if(a=="pick")send({t:"pick",i:+b.dataset.i});
  else if(a=="start"){SZ=+$("sz").value;send({t:"start",size:SZ})}
+ else if(a=="react"){const n=Date.now();if(n-lastRx>250){lastRx=n;send({t:"react",e:b.dataset.e})}}
  else if(a=="callvote"){if(confirm("Ask everyone to vote on ending the auction now?"))send({t:"callvote"})}
  else if(a=="vote")send({t:"vote",v:b.dataset.v})
  else if(a=="lobby")send({t:"lobby"});

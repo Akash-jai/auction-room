@@ -1,5 +1,5 @@
 """Auction Room server: FastAPI + WebSockets. The server owns all auction rules, so clients can't cheat."""
-import asyncio, base64, io, json, os, random, string
+import asyncio, base64, io, json, os, random, string, time
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
@@ -9,6 +9,7 @@ from custom import parse_upload, select_players, auction_size
 from tourney import simulate
 
 PURSE, MAXS, MINS, MAXO, MAXO_XI = 120.0, 25, 18, 8, 4
+REACTIONS = ["🔥", "😂", "💀", "👏", "😱", "🤯", "🐐", "🫡"]
 # bidding clock in seconds: (first clock, after a bid) for big players (base >= 1 cr) and small ones
 SPEEDS = {"quick": ((12, 8), (6, 4)), "normal": ((20, 12), (12, 8)), "relaxed": ((40, 25), (25, 15))}
 TM = [("Mumbai", "#1c5fd1"), ("Chennai", "#f2b705"), ("Bengaluru", "#d3222a"), ("Kolkata", "#5b2a86"),
@@ -98,6 +99,7 @@ class Room:
         s.status, s.last, s.log, s.unsold, s.pass2 = "bidding", "", [], [], False
         s.reaper = None
         s.bids = []  # bid history of the current lot, oldest first
+        s.chat, s.rl = [], {}  # last chat messages; per-client rate-limit timestamps
         s.vote, s.vote_cd = None, 0  # vote to end the auction early; cooldown (seconds) after a failed vote
         s.mode, s.speed, s.tour = "match", "normal", None  # match = one XI scores; tournament = depth wins
         s.custom = None  # host-uploaded player list: {"players": [...], "file": str, "notes": [...]}
@@ -335,6 +337,20 @@ class Room:
             if s.phase == "auction": s.task = asyncio.create_task(s.run())
         elif t == "bid":
             s.bid(cid)
+        elif t == "react":  # emoji reaction: floats over everyone's screen
+            e = m.get("e")
+            if e in REACTIONS and s.allow(cid, "r", 6, 3):
+                tm = s.team_of(cid)
+                await s.push({"t": "react", "e": e, "n": c["name"], "c": tm.c if tm else None})
+            return
+        elif t == "chat":
+            text = " ".join(str(m.get("m", "")).split())[:200]
+            if text and s.allow(cid, "c", 5, 6):
+                tm = s.team_of(cid)
+                msg = {"n": c["name"], "c": tm.c if tm else None, "m": text}
+                s.chat = (s.chat + [msg])[-60:]
+                await s.push({"t": "chat", **msg})
+            return
         elif t == "vjoin": c["voice"] = True
         elif t == "vleave": c["voice"] = False
         elif t == "rtc":  # voice chat signalling: relay to one peer by its public id (never reveals client ids)
@@ -422,6 +438,19 @@ class Room:
             d["tour"] = s.tour
         return d
 
+    async def push(s, obj):  # send one small message to everyone in the room (no full state)
+        txt = json.dumps(obj)
+        for c in list(s.cl.values()):
+            if c["ws"]:
+                try: await c["ws"].send_text(txt)
+                except Exception: c["ws"] = None
+
+    def allow(s, cid, kind, limit, secs):  # simple sliding-window rate limit
+        now, k = time.time(), (cid, kind)
+        hits = [x for x in s.rl.get(k, []) if now - x < secs]
+        if len(hits) >= limit: s.rl[k] = hits; return False
+        hits.append(now); s.rl[k] = hits; return True
+
     async def broadcast(s):
         for cid, c in list(s.cl.items()):
             if c["ws"]:
@@ -494,6 +523,8 @@ async def ws_ep(ws: WebSocket, code: str, cid: str = "", name: str = ""):
     if room.reaper: room.reaper.cancel(); room.reaper = None
     room.attach(cid, name, ws)
     await room.broadcast()
+    try: await ws.send_text(json.dumps({"t": "chatlog", "msgs": room.chat}))
+    except Exception: pass
     try:
         while True:
             m = json.loads(await ws.receive_text())
