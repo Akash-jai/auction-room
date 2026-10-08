@@ -95,7 +95,7 @@ class Room:
         s.code, s.cl, s.host, s.claims = code, {}, None, {}
         s.phase, s.teams, s.task = "lobby", [], None
         s.q, s.idx, s.p, s.cur, s.lead = [], -1, None, None, None
-        s.tl = s.na = s.pause = s.t1 = 0
+        s.tl = s.na = s.pause = s.t1 = s.hold = 0
         s.status, s.last, s.log, s.unsold, s.pass2 = "bidding", "", [], [], False
         s.reaper = None
         s.bids = []  # bid history of the current lot, oldest first
@@ -201,6 +201,7 @@ class Room:
         s.t1 = a1 if big else a2
         s.p, s.cur, s.lead, s.status, s.bids = p, None, None, "bidding", []
         s.tl, s.na = (f1 if big else f2), random.randint(1, 3)
+        s.hold = 8 if s.idx == 0 else 4  # intro hold: auctioneer introduces the player, bidding stays locked
 
     def team_of(s, cid): return next((x for x in s.teams if x.owner == cid), None)
 
@@ -271,12 +272,12 @@ class Room:
 
     def bid(s, cid):
         t = next((x for x in s.teams if x.owner == cid), None)
-        if s.phase != "auction" or s.status != "bidding" or not t: return
+        if s.phase != "auction" or s.status != "bidding" or s.hold > 0 or not t: return
         a = s.nb()
         if t is not s.lead and s.can(t, s.p, a): s.place(t, a)
 
     def hammer(s):
-        s.status, s.pause = "result", 3
+        s.status, s.pause = "result", 4
         if s.lead:
             s.lead.purse = r2(s.lead.purse - s.cur)
             s.lead.sq.append({**s.p, "paid": s.cur})
@@ -296,6 +297,9 @@ class Room:
         if s.status == "result":
             s.pause -= 1
             if s.pause <= 0: s.next_lot()
+            return
+        if s.hold > 0:
+            s.hold -= 1
             return
         s.tl -= 1; s.na -= 1
         a, p = s.nb(), s.p
@@ -411,7 +415,7 @@ class Room:
             d["lot"] = {"i": s.idx + 1, "of": len(s.q), "p": s.p, "cur": s.cur, "lead": s.lead.i if s.lead else None,
                         "tl": s.tl, "st": s.status, "nb": a, "last": s.last,
                         "bids": s.bids[-8:][::-1], "nbids": len(s.bids),
-                        "can": bool(me and s.status == "bidding" and me is not s.lead and s.can(me, s.p, a))}
+                        "hold": s.hold, "can": bool(me and s.status == "bidding" and s.hold <= 0 and me is not s.lead and s.can(me, s.p, a))}
             d["mine"] = me.sq if me else []
             d["log"] = s.log[-10:][::-1]
             d["vote_cd"] = s.vote_cd

@@ -176,7 +176,7 @@ function confetti(cols){const f=$("fx");for(let i=0;i<80;i++){const e=document.c
  f.appendChild(e);setTimeout(()=>e.remove(),4200)}}
 function showSold(cur){
  const L=cur.lot,lead=cur.teams.find(t=>t.i==L.lead),y=cur.you.team;
- say(lead?`Sold! ${L.p.n} goes to ${lead.n}, for ${sayMoney(L.cur)}!`:`${L.p.n}. Unsold.`,"sold");AU.last=null;
+ say(lead?`Sold! ${L.p.n}, to ${lead.n}, for ${sayMoney(L.cur)}.`:`${L.p.n}. Unsold.`,"sold");AU.last=null;
  const r=(document.querySelector(".lot")||document.body).getBoundingClientRect(),o=document.createElement("div");
  o.className="stampov";o.style.cssText=`top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${r.height}px`;
  o.innerHTML=`<div class="stampbox" style="--tc:${lead?lead.c:"#7a7a7a"}"><b>${lead?"SOLD":"UNSOLD"}</b>${lead?`<span>${esc(L.p.n)} → ${esc(lead.n)}</span><span>${fm(L.cur)}</span>`:`<span>${esc(L.p.n)}</span>`}</div>`;
@@ -193,11 +193,13 @@ function fx(prev,cur){
  if(cur.phase=="end"&&prev&&prev.phase!="end"){const w=cur.tour?cur.res.find(x=>x.n==cur.tour.champion):cur.res[0];confetti([w.c,"#ffd54a","#ffffff","#ff6b6b"]);SFX.fan();return}
  if(!prev||prev.phase!="auction"||cur.phase!="auction"||!prev.lot||!cur.lot)return;
  const a=prev.lot,b=cur.lot,y=cur.you.team;
- if(a.i!=b.i){clk={lot:b.i,total:Math.max(1,b.tl),prev:b.tl};say(`Next up, ${b.p.n}, ${ROLEW[b.p.k]}. Base price, ${sayMoney(b.p.b)}.`,"next");AU.last={lot:b.i,cur:null,lead:null};return}
+ if(a.i!=b.i){clk={lot:b.i,total:Math.max(1,b.tl),prev:b.tl};say(`Next up, ${b.p.n}, ${ROLEW[b.p.k]}. Base price, ${sayMoney(b.p.b)}.`,"next");AU.last={lot:b.i,cur:null,lead:null};AU.gc={once:0,twice:0};return}
  if(b.nbids>a.nbids){FR.bid=1;clk.total=Math.max(1,b.tl);
   if(b.lead==y){FR.mine=1;SFX.mine()}else if(a.lead==y&&y!=null){FR.outbid=1;SFX.out()}else SFX.bid();
   const bl=cur.teams.find(t=>t.i==b.lead);if(bl)say(`${sayMoney(b.cur)}. ${bl.n}.`,"bid",{lot:b.i,cur:b.cur,lead:b.lead})}
- if(b.st=="bidding"&&b.lead!=null&&b.tl!=a.tl){if(b.tl==3)say("Going once.","tick");else if(b.tl==2)say("Going twice.","tick")}
+ if(b.nbids!=a.nbids||a.i!=b.i)AU.gc={once:0,twice:0};
+ if(b.st=="bidding"&&b.lead!=null&&AU.gc){if(b.tl<=2&&!AU.gc.twice){AU.gc.once=AU.gc.twice=1;say("Going twice.","tick")}
+  else if(b.tl<=3&&b.tl>2&&!AU.gc.once){AU.gc.once=1;say("Going once.","tick")}}
  if(b.st=="result"&&a.st!="result")showSold(cur);
  else if(b.st=="bidding"&&b.tl<a.tl&&b.tl>=1&&b.tl<=3)SFX.tick();
 }
@@ -303,7 +305,7 @@ document.addEventListener("keyup",e=>{if(e.code=="Space"&&VC.on&&VC.ptt){e.preve
 window.addEventListener("blur",()=>setTalk(false));
 
 // ---------- auctioneer voice ----------
-const AU={on:localStorage.getItem("auc")!="0",voice:null,q:[],cur:null,last:null};
+const AU={on:localStorage.getItem("auc")!="0",voice:null,q:[],cur:null,last:null,gc:{once:0,twice:0}};
 // Prefer natural/neural voices (Edge "Online (Natural)", Google, Apple), Indian English first, avoid robotic "compact" ones
 function voiceScore(v){const n=v.name+" "+v.lang;let s=0;
  if(/natural|neural|online/i.test(n))s+=50;if(/google/i.test(n))s+=25;if(/premium|enhanced/i.test(n))s+=30;
@@ -319,7 +321,7 @@ if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=pickVoice;pickVo
 function utter(it){
  const u=new SpeechSynthesisUtterance(it.t),k=it.k,id=Date.now()+Math.random();
  if(AU.voice){u.voice=AU.voice;u.lang=AU.voice.lang}
- u.rate=k=="bid"?1.05:k=="tick"?.95:k=="sold"?.97:1;u.pitch=k=="sold"?1.05:1;u.volume=1;
+ u.rate=k=="bid"?1.1:k=="tick"?1.05:k=="sold"?1.08:1.03;u.pitch=k=="sold"?1.05:1;u.volume=1;
  const c=AU.cur={k,id};
  if(k=="bid"&&it.meta)AU.last=it.meta;
  let done=false;const fin=()=>{if(done||AU.cur!==c)return;done=true;clearTimeout(c.tm);AU.cur=null;nextCall()};
@@ -338,7 +340,7 @@ function say(t,k="next",meta){
  if(!AU.on||!("speechSynthesis" in window))return;
  const it={t,k,meta},c=AU.cur;
  if(k=="bid"){if(c||AU.q.length)return;return utter(it)}
- if(k=="tick"){if(AU.q.length||(c&&c.k!="bid"))return;return c?interrupt(it):utter(it)}
+ if(k=="tick"){if(AU.q.length||(c&&c.k!="bid"&&c.k!="tick"))return;return c?interrupt(it):utter(it)}
  AU.q.push(it);
  if(!c)nextCall();else if(c.k=="bid"||c.k=="tick")interrupt()}
 function sayMoney(x){if(x<1)return Math.round(x*100)+" lakh";const c=Math.floor(x+1e-9),l=Math.round((x-c)*100);return c+" crore"+(l?" "+l+" lakh":"")}
@@ -443,7 +445,7 @@ function auction(){
  <div><span class="bid ${FR.bid?"pulse":""}">${fm(L.cur??p.b)}</span></div>
  ${res?`<div class="stamp ${L.last=="UNSOLD"?"uns":"sold"}">${esc(L.last)}</div>`:`<div class="stamp">${lead?`Leading: <b style="color:${lead.c}">${esc(lead.n)}</b>`:"Waiting for an opening bid"}</div>
  <div class="tbar ${left<=2?"low":""}"><i style="--from:${pct}%;animation-duration:${left}s"></i></div><div class="clock" style="color:${left<=5?"var(--bad)":"inherit"}">${left}s</div>`}</div>
- ${me?`<button class="go bigbtn ${FR.outbid?"shake":""}" id="bid" style="background:${me.c};border-color:${me.c};color:${fg(me.c)}" ${L.can?"":"disabled"}>${res?"Next player coming…":me.i==L.lead?"You lead":"Bid "+fm(L.nb)}</button>`:"<p>You are spectating.</p>"}
+ ${me?`<button class="go bigbtn ${FR.outbid?"shake":""}" id="bid" style="background:${me.c};border-color:${me.c};color:${fg(me.c)}" ${L.can?"":"disabled"}>${res?"Next player coming…":L.hold>0?"Auctioneer is introducing…":me.i==L.lead?"You lead":"Bid "+fm(L.nb)}</button>`:"<p>You are spectating.</p>"}
  ${rxBar()}
  <div class="cols"><div>
   <h2>Bids on this player</h2><div class="feed">${L.bids.length?L.bids.map((b,i)=>`<div class="fb ${i==0?"top":""}"><span><b style="color:${b.c}">■</b> ${esc(b.n)}</span><span>${fm(b.a)}</span></div>`).join(""):"<p>No bids yet.</p>"}</div>
