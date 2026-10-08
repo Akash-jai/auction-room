@@ -324,8 +324,8 @@ const PRON=[[/\blakhs?\b/gi,"laakh"],[/\bcrores?\b/gi,"crore"],
  [/\bLhuan-dre\b/g,"Lwahn-dray"],[/\bNaveen-ul-Haq\b/g,"Naveen ul Haq"],[/\bMisbah-ul-Haq\b/g,"Misbah ul Haq"],[/\bde Villiers\b/g,"de Villiers"],[/\bPrabhsimran\b/g,"Prabh simran"]];
 function spell(t,voice){
  t=t.replace(/\b([A-Z]{2,3})\b(?=\s+[A-Za-z][a-z])/g,(m,x)=>x.split("").join(" ")); // KL Rahul -> K L Rahul, MS Dhoni -> M S Dhoni
- const indian=voice&&/en[-_]IN/i.test(voice.lang); // Indian-English voices already say lakh/crore/place names correctly
- PRON.forEach(([r,v],i)=>{if(!(indian&&i<9))t=t.replace(r,v)});
+ const indian=voice&&/en[-_]IN/i.test(voice.lang); // Indian-English voices usually say place names correctly
+ PRON.forEach(([r,v],i)=>{if(!(indian&&i>=2&&i<9))t=t.replace(r,v)}); // lakh/crore always respelled; place names only for non-Indian voices
  return t.replace(/-/g," ")}
 function utter(it){
  const u=new SpeechSynthesisUtterance(spell(it.t,AU.voice)),k=it.k,id=Date.now()+Math.random();
