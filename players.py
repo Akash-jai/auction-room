@@ -100,6 +100,34 @@ RERATE = {
  "Glenn McGrath": 72, "Eoin Morgan": 78, "Chris Lynn": 80, "Aaron Finch": 76, "Jason Roy": 76,
 }
 
+# Extra re-rating for proven performers who were rated too low (applied on top of the above).
+BOOST = {
+ "Mohammed Siraj": 91, "Bhuvneshwar Kumar": 90, "Yuzvendra Chahal": 90, "Jasprit Bumrah": 96, "Kuldeep Yadav": 90,
+ "Arshdeep Singh": 90, "Mohammed Shami": 89, "Varun Chakravarthy": 89, "Prasidh Krishna": 85, "Harshal Patel": 84,
+ "Deepak Chahar": 83, "Avesh Khan": 82, "Khaleel Ahmed": 81, "T Natarajan": 82, "Harshit Rana": 83, "Ravi Bishnoi": 83,
+ "Akash Deep": 81, "Mukesh Kumar": 79, "Mayank Yadav": 80, "Yash Dayal": 79, "Sandeep Sharma": 77, "Mohit Sharma": 75,
+ "Sai Kishore": 77, "Tushar Deshpande": 75, "Umran Malik": 74, "Rahul Chahar": 74, "Jaydev Unadkat": 72,
+ "KL Rahul": 91, "Rishabh Pant": 92, "Sanju Samson": 90, "Ishan Kishan": 85, "Jitesh Sharma": 81, "Dhruv Jurel": 81,
+ "Shubman Gill": 92, "Suryakumar Yadav": 92, "Yashasvi Jaiswal": 92, "Ruturaj Gaikwad": 89, "Shreyas Iyer": 89,
+ "Sai Sudharsan": 88, "Tilak Varma": 88, "Rinku Singh": 87, "Rajat Patidar": 85, "Riyan Parag": 83, "Devdutt Padikkal": 82,
+ "Shashank Singh": 82, "Ajinkya Rahane": 80, "Nitish Rana": 79, "Prithvi Shaw": 77, "Karun Nair": 78,
+ "Hardik Pandya": 92, "Axar Patel": 89, "Abhishek Sharma": 89, "Washington Sundar": 84, "Shivam Dube": 84,
+ "Nitish Kumar Reddy": 83, "Venkatesh Iyer": 82, "Krunal Pandya": 82, "Rahul Tewatia": 80, "Shardul Thakur": 79,
+ "Ramandeep Singh": 78, "Harpreet Brar": 74,
+ "Heinrich Klaasen": 93, "Jos Buttler": 92, "Nicholas Pooran": 90, "Phil Salt": 89, "Quinton de Kock": 88,
+ "Travis Head": 92, "Rashid Khan": 94, "Pat Cummins": 90, "Mitchell Starc": 89, "Kagiso Rabada": 89, "Trent Boult": 89,
+ "Jofra Archer": 88, "Josh Hazlewood": 88, "Glenn Maxwell": 86, "Mitchell Marsh": 87, "Sam Curran": 84, "Liam Livingstone": 83,
+ "Marcus Stoinis": 83, "Wanindu Hasaranga": 83, "Noor Ahmad": 84, "Matheesha Pathirana": 84, "Marco Jansen": 83,
+ "Will Jacks": 83, "Cameron Green": 83, "Tim David": 84, "David Miller": 85, "Aiden Markram": 85, "Harry Brook": 85,
+ "Shimron Hetmyer": 83, "Mustafizur Rahman": 82, "Anrich Nortje": 83, "Lockie Ferguson": 81, "Nathan Ellis": 79,
+ "Lungi Ngidi": 79, "Tristan Stubbs": 83, "Rachin Ravindra": 83, "Ben Stokes": 84, "Daryl Mitchell": 81,
+}
+
+
+def lift(r):
+    """Gentle lift for the lower tiers so the middle of the pool is not all 56-68."""
+    return r + 5 if r < 64 else r + 4 if r < 70 else r + 3 if r < 76 else r
+
 
 def base(r):
     return 2.0 if r >= 88 else 1.5 if r >= 84 else 1.0 if r >= 78 else .5 if r >= 74 else .3 if r >= 68 else .2
@@ -115,6 +143,7 @@ def build_pool():
             if n in seen: continue
             seen.add(n)
             r = RERATE.get(n, int(r))
+            r = BOOST[n] if n in BOOST else min(lift(r), 79) if n not in RERATE else r
             b = base(r)
             if o: b = max(b, .5)
             pool.append(dict(n=n, k=k, o=o, r=r, b=b))
@@ -124,10 +153,14 @@ def build_pool():
 def order(pool, mq=14):
     """Marquee set first (shuffled), then role-based sets in random order, higher-rated before lower-rated."""
     ps = sorted(pool, key=lambda p: -p["r"])
-    marquee, rest = ps[:mq], ps[mq:]
-    random.shuffle(marquee)
-    out = marquee[:]
-    for group in ([p for p in rest if p["r"] >= 70], [p for p in rest if p["r"] < 70]):
+    top = ps[:mq]
+    rest = ps[mq:]
+    random.shuffle(top)
+    out = top[:]
+    # split the rest into 3 rating bands, shuffled inside each, so every auction runs in a different order
+    n = len(rest)
+    bands = [rest[:n // 3], rest[n // 3: 2 * n // 3], rest[2 * n // 3:]]
+    for group in bands:
         sets = [[p for p in group if p["k"] == k] for k in "BLAW"]
         random.shuffle(sets)
         for s in sets:
@@ -156,10 +189,15 @@ def pick(pool, n, mq, max_ov=.38, cap=.6):
     """Top `mq` by rating + famous names always play (up to `cap` of the auction); the rest is a random sample
     with a realistic overseas share."""
     ps = sorted(pool, key=lambda p: -p["r"])
-    g = ps[:mq]
+    # the marquee is a random draw from a wider top band, so it is not the same 18 players every game
+    band = ps[:int(mq * 1.6)]
+    g = random.sample(band, mq)
     have = {p["n"] for p in g}
     by = {p["n"]: p for p in pool}
-    for nm in FAMOUS:
+    fam = FAMOUS[:]
+    for i in range(0, len(fam), 15):  # shuffle inside tiers of 15: big names stay likely, but not fixed
+        chunk = fam[i:i + 15]; random.shuffle(chunk); fam[i:i + 15] = chunk
+    for nm in fam[:int(len(fam) * .75)]:
         if len(g) >= int(cap * n): break
         if nm in by and nm not in have:
             g.append(by[nm]); have.add(nm)

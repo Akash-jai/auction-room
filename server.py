@@ -96,7 +96,7 @@ class Room:
         s.phase, s.teams, s.task = "lobby", [], None
         s.q, s.idx, s.p, s.cur, s.lead = [], -1, None, None, None
         s.tl = s.na = s.pause = s.t1 = s.hold = 0
-        s.status, s.last, s.log, s.unsold, s.pass2 = "bidding", "", [], [], False
+        s.status, s.last, s.log, s.unsold, s.pass2, s.rounds = "bidding", "", [], [], False, 0
         s.reaper = None
         s.bids = []  # bid history of the current lot, oldest first
         s.chat, s.rl = [], {}  # last chat messages; per-client rate-limit timestamps
@@ -170,21 +170,22 @@ class Room:
             mq = min(30, 14 + size * 2)  # marquee set grows with the number of teams (2 -> 18, 10 -> 30)
             q = order(pick(pool, n, mq), mq)
         s.vote, s.vote_cd = None, 0
-        s.q, s.idx, s.unsold, s.pass2, s.log = q, -1, [], False, []
+        s.q, s.idx, s.unsold, s.pass2, s.log, s.rounds = q, -1, [], False, [], 0
         s.phase = "auction"
         s.next_lot()
 
     def done(s, t):
         """A team is finished when its squad is full, it is an AI at its target size, or it can't legally afford anyone left."""
         if len(t.sq) >= MAXS or (s.auto(t) and len(t.sq) >= t.target): return True
-        return not any(s.can(t, x, x["b"]) for x in s.q[s.idx:])
+        left = s.q[s.idx:] + ([] if s.rounds >= 3 else s.unsold)  # unsold players can still return in the accelerated round
+        return not any(s.can(t, x, x["b"]) for x in left)
 
     def next_lot(s):
         while True:
             s.idx += 1
-            if all(s.done(t) for t in s.teams): return s.finish()
             if s.idx >= len(s.q):
-                if not s.pass2 and s.unsold and any(len(t.sq) < MINS for t in s.teams):
+                if s.unsold and s.rounds < 3 and any(len(t.sq) < MINS and not s.done(t) for t in s.teams):
+                    s.rounds += 1
                     s.pass2 = True
                     random.shuffle(s.unsold)
                     s.q += s.unsold; s.unsold = []
@@ -192,6 +193,7 @@ class Room:
                     s.idx -= 1
                     continue
                 return s.finish()
+            if all(s.done(t) for t in s.teams): return s.finish()
             p = s.q[s.idx]
             if not any(s.can(t, p, p["b"]) for t in s.teams):
                 s.unsold.append(p); continue
